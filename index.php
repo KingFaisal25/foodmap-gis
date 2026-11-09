@@ -52,6 +52,9 @@ $keyReady = mapsKeyReady();
 <main class="layout">
   <!-- ============ SIDEBAR: filter + daftar ============ -->
   <aside class="sidebar" id="sidebar">
+    <!-- Globe 3D sebagai background di belakang daftar makanan -->
+    <div class="globe-bg" id="globeBg"><canvas id="globe3d" aria-label="Peta 3D penyedia makanan di Bandung"></canvas></div>
+
     <div class="filter-bar">
       <div class="chips" id="chipsKategori">
         <button class="chip active" data-kategori="Semua">Semua</button>
@@ -69,16 +72,13 @@ $keyReady = mapsKeyReady();
 
     <p class="hasil-info"><span id="jumlahHasil">Memuat...</span></p>
 
-    <!-- Statistik + globe 3D (Three.js) -->
+    <!-- Statistik + hint globe -->
     <div class="stats-strip" id="statsStrip">
       <div class="stat"><b id="statPenyedia">0</b><span>Penyedia</span></div>
       <div class="stat"><b id="statMenu">0</b><span>Menu</span></div>
       <div class="stat"><b id="statKategori">0</b><span>Kategori</span></div>
     </div>
-    <div class="globe-wrap" id="globeWrap">
-      <canvas id="globe3d" aria-label="Peta 3D penyedia makanan di Bandung"></canvas>
-      <p class="globe-caption"><i class="fa-solid fa-earth-asia"></i> Peta 3D Bandung — geser untuk memutar, klik titik untuk melihat penyedia</p>
-    </div>
+    <p class="globe-hint"><i class="fa-solid fa-earth-asia"></i> Peta 3D berputar di belakang daftar</p>
 
     <div class="list" id="daftarPenyedia">
       <div class="skeleton"></div>
