@@ -20,6 +20,7 @@ $keyReady = mapsKeyReady();
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/style.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 <header class="topbar">
@@ -66,6 +67,17 @@ $keyReady = mapsKeyReady();
     </div>
 
     <p class="hasil-info"><span id="jumlahHasil">Memuat...</span></p>
+
+    <!-- Statistik + globe 3D (Three.js) -->
+    <div class="stats-strip" id="statsStrip">
+      <div class="stat"><b id="statPenyedia">0</b><span>Penyedia</span></div>
+      <div class="stat"><b id="statMenu">0</b><span>Menu</span></div>
+      <div class="stat"><b id="statKategori">0</b><span>Kategori</span></div>
+    </div>
+    <div class="globe-wrap" id="globeWrap">
+      <canvas id="globe3d" aria-label="Peta 3D penyedia makanan di Bandung"></canvas>
+      <p class="globe-caption"><i class="fa-solid fa-earth-asia"></i> Peta 3D Bandung — geser untuk memutar, klik titik untuk melihat penyedia</p>
+    </div>
 
     <div class="list" id="daftarPenyedia">
       <div class="skeleton"></div>
@@ -147,6 +159,8 @@ $keyReady = mapsKeyReady();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="assets/js/app.js"></script>
+<script defer src="assets/js/globe3d.js"></script>
+<script defer src="assets/js/polish.js"></script>
 <?php if ($keyReady): ?>
 <script async defer onerror="mapLoadFailed()" src="https://maps.googleapis.com/maps/api/js?key=<?= urlencode(GOOGLE_MAPS_API_KEY) ?>&libraries=geometry&callback=initMap"></script>
 <?php endif; ?>

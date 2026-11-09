@@ -100,6 +100,12 @@ Sesuai tugas, **Google Maps API adalah peta utama** (marker, detail, rute Direct
 
 Begitu billing diaktifkan di project Google Cloud, Google Maps langsung jadi peta utama lagi tanpa perlu mengubah kode. Tombol "Buka di Google Maps" (link `google.com/maps/dir`) tetap berfungsi di semua mode karena tidak butuh API key.
 
+## 🌐 Globe 3D + polish visual (Three.js)
+
+- **Globe 3D interaktif** di sidebar (`assets/js/globe3d.js`, Three.js r128 via CDN): bola kawat + garis lintang + partikel, titik-titik penyedia diambil dari `api.php` (bukan statis). Karena semua penyedia ada di Bandung dengan rentang koordinat yang sangat kecil, posisinya dipetakan **secara skematis (diperlebar)** ke sepetak globe di sekitar Indonesia agar terlihat — ini widget visual, bukan peta ukur. Geser untuk memutar, klik titik untuk membuka kartu penyedia. Satu canvas, satu konteks WebGL; animasi berhenti saat tab tidak aktif / globe tidak terlihat / `prefers-reduced-motion`.
+- **Statistik count-up** (penyedia / menu / kategori) dari `api.php` (`assets/js/polish.js`), animasi masuk kartu berurutan, tilt kartu saat hover (pointer halus saja), garis cahaya animasi di topbar.
+- Fungsi GIS (peta, rute, filter, admin) tidak diubah.
+
 ## 👤 Admin
 
 Buka `admin.php` → login dengan password di `config.php` (default `admin123`).
