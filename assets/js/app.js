@@ -27,7 +27,12 @@
   var userMarker = null;
   var userLoc = null;
   var aktifId = null;
-  var filter = { q: '', kategori: 'Semua', maxHarga: '', radiusKm: '' };
+  var filter = { q: '', kategori: 'Semua', maxHarga: '', radiusKm: '', halalSaja: false, bukaSaja: false, fasilitas: [], pembayaran: [], favoritSaja: false, sort: 'nama' };
+  // Favorit: daftar id penyedia (tersimpan di localStorage)
+  var favList = [];
+  try {
+    favList = JSON.parse(localStorage.getItem('foodmap_fav') || '[]') || [];
+  } catch (e) { favList = []; }
   // Tur kuliner: daftar id penyedia (tersimpan di localStorage)
   var turStops = [];
   try {
@@ -96,6 +101,36 @@
     for (var i = 1; i <= 5; i++) s += i <= penuh ? '★' : '☆';
     return '<span class="rating-bintang">' + s + '</span> <b>' + Number(avg).toFixed(1).replace('.', ',') + '</b> (' + count + ')';
   }
+  /** Daftar tag (fasilitas/pembayaran) dari string koma. */
+  function tagList(str) {
+    return (str || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+  }
+  var LABEL_FASILITAS = { wifi: 'WiFi', parkir: 'Parkir', mushola: 'Mushola', outdoor: 'Outdoor', anak: 'Ramah anak' };
+  var IKON_FASILITAS = { wifi: 'fa-wifi', parkir: 'fa-square-parking', mushola: 'fa-mosque', outdoor: 'fa-tree', anak: 'fa-child' };
+  var LABEL_BAYAR = { qris: 'QRIS', tunai: 'Tunai', ewallet: 'E-wallet' };
+  function fasilitasHtml(p) {
+    var tags = tagList(p.fasilitas);
+    if (!tags.length) return '';
+    return '<span class="card-fasilitas">' + tags.map(function (t) {
+      return '<span title="' + (LABEL_FASILITAS[t] || t) + '"><i class="fa-solid ' + (IKON_FASILITAS[t] || 'fa-circle-check') + '"></i> ' + (LABEL_FASILITAS[t] || t) + '</span>';
+    }).join('') + '</span>';
+  }
+  function halalBadgeHtml(p) {
+    if (p.halal === 'halal') return '<span class="badge-halal badge-halal-mini">✓ Halal</span>';
+    return '';
+  }
+  // ---------- Favorit ----------
+  function simpanFav() {
+    try { localStorage.setItem('foodmap_fav', JSON.stringify(favList)); } catch (e) { /* abaikan */ }
+  }
+  function toggleFav(id) {
+    var i = favList.indexOf(id);
+    if (i === -1) { favList.push(id); beriTahu(namaPenyedia(id) + ' disimpan ke favorit.'); }
+    else favList.splice(i, 1);
+    simpanFav();
+    terapkanFilter();
+    if (aktifId === id) { /* segarkan tombol di panel detail */ var p = cariPenyedia(id); if (p) tampilkanDetail(p); }
+  }
 
   // ---------- Ambil data ----------
   function ambilJSON(url) {
@@ -160,6 +195,17 @@
       var km = jarakKm(p);
       if (km === null || km > Number(filter.radiusKm)) return false;
     }
+    if (filter.halalSaja && p.halal !== 'halal') return false;
+    if (filter.bukaSaja && statusBuka(p).buka !== true) return false;
+    if (filter.fasilitas.length) {
+      var tagsF = tagList(p.fasilitas);
+      for (var i = 0; i < filter.fasilitas.length; i++) if (tagsF.indexOf(filter.fasilitas[i]) === -1) return false;
+    }
+    if (filter.pembayaran.length) {
+      var tagsB = tagList(p.pembayaran);
+      for (var j = 0; j < filter.pembayaran.length; j++) if (tagsB.indexOf(filter.pembayaran[j]) === -1) return false;
+    }
+    if (filter.favoritSaja && favList.indexOf(p.id_penyedia) === -1) return false;
     if (filter.q) {
       var q = filter.q.toLowerCase();
       var hay = (p.nama_penyedia + ' ' + (p.alamat || '') + ' ' + p.kategori).toLowerCase();
@@ -170,9 +216,18 @@
 
   function terapkanFilter() {
     var hasil = semuaPenyedia.filter(cocokFilter);
-    // Bila filter jarak aktif, urutkan dari yang terdekat.
-    if (filter.radiusKm !== '' && userLoc) {
+    // Urutan tampil
+    if (filter.sort === 'termurah') {
+      hasil.sort(function (a, b) { return (a.harga_termurah === null ? Infinity : a.harga_termurah) - (b.harga_termurah === null ? Infinity : b.harga_termurah); });
+    } else if (filter.sort === 'rating') {
+      hasil.sort(function (a, b) { return (b.rating_avg === null ? -1 : b.rating_avg) - (a.rating_avg === null ? -1 : a.rating_avg); });
+    } else if (filter.sort === 'dekat' && userLoc) {
       hasil.sort(function (a, b) { return jarakKm(a) - jarakKm(b); });
+    } else if (filter.radiusKm !== '' && userLoc) {
+      // Filter jarak aktif tanpa urutan lain: urutkan dari yang terdekat.
+      hasil.sort(function (a, b) { return jarakKm(a) - jarakKm(b); });
+    } else {
+      hasil.sort(function (a, b) { return a.nama_penyedia.localeCompare(b.nama_penyedia, 'id'); });
     }
     renderDaftar(hasil);
     renderMarker(hasil);
@@ -190,13 +245,16 @@
       var st = statusBuka(p);
       var j = jarakText(p);
       var diTur = turStops.indexOf(p.id_penyedia) !== -1;
+      var diFav = favList.indexOf(p.id_penyedia) !== -1;
       return '<div class="card' + (p.id_penyedia === aktifId ? ' active' : '') + '" data-id="' + p.id_penyedia + '" role="button" tabindex="0">' +
+        '<button class="fav-btn' + (diFav ? ' in-fav' : '') + '" data-id="' + p.id_penyedia + '" title="' + (diFav ? 'Hapus dari favorit' : 'Simpan ke favorit') + '">' + (diFav ? '♥' : '♡') + '</button>' +
         '<button class="tur-add' + (diTur ? ' in-tur' : '') + '" data-id="' + p.id_penyedia + '" title="' + (diTur ? 'Sudah di tur — klik untuk hapus' : 'Tambah ke tur kuliner') + '">' + (diTur ? '✓ Tur' : '+ Tur') + '</button>' +
         '<img src="' + esc(p.foto || '') + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' +
         '<span class="card-info">' +
           '<h3>' + esc(p.nama_penyedia) + '</h3>' +
-          '<span class="card-cat" style="background:' + warnaKategori(p) + '">' + esc(p.kategori) + '</span><br>' +
+          '<span class="card-cat" style="background:' + warnaKategori(p) + '">' + esc(p.kategori) + '</span>' + halalBadgeHtml(p) + '<br>' +
           '<span class="card-alamat"><i class="fa-solid fa-location-dot"></i> ' + esc(p.alamat || '') + '</span>' +
+          fasilitasHtml(p) +
           '<span class="card-meta">' +
             '<span>Mulai <b>' + rupiah(p.harga_termurah) + '</b></span>' +
             '<span><i class="fa-solid fa-bowl-food"></i> ' + p.jumlah_menu + ' menu</span>' +
@@ -216,6 +274,12 @@
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
         toggleTur(Number(btn.getAttribute('data-id')));
+      });
+    });
+    box.querySelectorAll('.fav-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleFav(Number(btn.getAttribute('data-id')));
       });
     });
   }
@@ -349,6 +413,24 @@
     var badge = $('detailKategori');
     badge.textContent = p.kategori;
     badge.style.background = warnaKategori(p);
+    var halalEl = $('detailHalal');
+    if (halalEl) halalEl.hidden = p.halal !== 'halal';
+    var fasEl = $('detailFasilitas');
+    if (fasEl) {
+      var tagsF = tagList(p.fasilitas);
+      if (tagsF.length) {
+        fasEl.hidden = false;
+        fasEl.innerHTML = '<i class="fa-solid fa-circle-check"></i> Fasilitas: ' + tagsF.map(function (t) { return LABEL_FASILITAS[t] || t; }).join(' · ');
+      } else fasEl.hidden = true;
+    }
+    var byrEl = $('detailPembayaran');
+    if (byrEl) {
+      var tagsB = tagList(p.pembayaran);
+      if (tagsB.length) {
+        byrEl.hidden = false;
+        byrEl.innerHTML = '<i class="fa-solid fa-qrcode"></i> Pembayaran: ' + tagsB.map(function (t) { return LABEL_BAYAR[t] || t; }).join(' · ');
+      } else byrEl.hidden = true;
+    }
     $('detailStatusDot').className = 'dot-buka ' + (st.buka ? 'buka' : 'tutup');
     $('detailStatus').textContent = st.teks;
     $('detailAlamat').textContent = p.alamat || '-';
@@ -385,6 +467,19 @@
       var diTur = turStops.indexOf(p.id_penyedia) !== -1;
       btnTur.innerHTML = diTur ? '<i class="fa-solid fa-check"></i> Di Tur' : '<i class="fa-solid fa-plus"></i> Tur';
       btnTur.onclick = function () { toggleTur(p.id_penyedia); };
+    }
+    // Tombol favorit + bagikan WhatsApp
+    var btnFav = $('btnFav');
+    if (btnFav) {
+      var diFav = favList.indexOf(p.id_penyedia) !== -1;
+      btnFav.innerHTML = diFav ? '<i class="fa-solid fa-heart"></i> Favorit ✓' : '<i class="fa-regular fa-heart"></i> Favorit';
+      btnFav.onclick = function () { toggleFav(p.id_penyedia); };
+    }
+    var btnWa = $('btnShareWa');
+    if (btnWa) {
+      var teks = 'Yuk makan di ' + p.nama_penyedia + ' (' + p.kategori + ') — ' + (p.alamat || 'Bandung') +
+        ', mulai ' + rupiah(p.harga_termurah) + '. Lokasi: https://www.google.com/maps/dir/?api=1&destination=' + p.latitude + ',' + p.longitude;
+      btnWa.href = 'https://wa.me/?text=' + encodeURIComponent(teks);
     }
     $('panelDetail').hidden = false;
   }
@@ -654,6 +749,65 @@
     terapkanFilter();
     if (e.target.value !== '' && !userLoc) beriTahu('Aktifkan "Lokasi Saya" dulu untuk filter jarak.');
   });
+  $('selectUrut').addEventListener('change', function (e) {
+    filter.sort = e.target.value;
+    if (e.target.value === 'dekat' && !userLoc) beriTahu('Aktifkan "Lokasi Saya" dulu untuk urutan terdekat.');
+    terapkanFilter();
+  });
+  $('chkHalal').addEventListener('change', function (e) {
+    filter.halalSaja = e.target.checked;
+    terapkanFilter();
+  });
+  $('chkBuka').addEventListener('change', function (e) {
+    filter.bukaSaja = e.target.checked;
+    terapkanFilter();
+  });
+  $('chipFavorit').addEventListener('click', function () {
+    filter.favoritSaja = !filter.favoritSaja;
+    this.classList.toggle('active', filter.favoritSaja);
+    terapkanFilter();
+  });
+  function pasangChips(boxId, kunci) {
+    var box = $(boxId);
+    if (!box) return;
+    box.querySelectorAll('.chip').forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var tag = chip.getAttribute('data-tag');
+        var arr = filter[kunci];
+        var i = arr.indexOf(tag);
+        if (i === -1) arr.push(tag); else arr.splice(i, 1);
+        chip.classList.toggle('active', i === -1);
+        terapkanFilter();
+      });
+    });
+  }
+  pasangChips('chipFasilitas', 'fasilitas');
+  pasangChips('chipPembayaran', 'pembayaran');
+  // ---------- Pencarian suara (Web Speech API, Chrome) ----------
+  (function pasangSuara() {
+    var btn = $('btnSuara');
+    if (!btn) return;
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { btn.style.display = 'none'; return; }
+    btn.addEventListener('click', function () {
+      var rec;
+      try { rec = new SR(); } catch (e) { beriTahu('Pencarian suara tidak didukung browser ini.'); return; }
+      rec.lang = 'id-ID';
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      btn.classList.add('listening');
+      btn.title = 'Mendengarkan...';
+      rec.onresult = function (ev) {
+        var teks = ev.results[0][0].transcript || '';
+        $('inputCari').value = teks;
+        filter.q = teks.trim();
+        terapkanFilter();
+      };
+      rec.onerror = function () { beriTahu('Suara tidak terdengar — coba lagi.'); };
+      rec.onend = function () { btn.classList.remove('listening'); btn.title = 'Cari dengan suara'; };
+      try { rec.start(); } catch (e) { btn.classList.remove('listening'); }
+    });
+  })();
   $('btnHeatmap').addEventListener('click', function () { toggleHeatmap(); });
   $('btnBuatRute').addEventListener('click', function () { buatRuteTur(); });
   $('btnHapusTur').addEventListener('click', function () {
