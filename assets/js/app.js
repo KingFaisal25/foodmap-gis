@@ -38,9 +38,6 @@
   try {
     turStops = JSON.parse(localStorage.getItem('foodmap_tur') || '[]') || [];
   } catch (e) { turStops = []; }
-  // Heatmap kepadatan kuliner
-  var heatmapLayer = null;
-  var heatmapAktif = false;
   // Street View di panel detail
   var streetPano = null;
   var streetUntukId = null;
@@ -244,11 +241,7 @@
     box.innerHTML = hasil.map(function (p) {
       var st = statusBuka(p);
       var j = jarakText(p);
-      var diTur = turStops.indexOf(p.id_penyedia) !== -1;
-      var diFav = favList.indexOf(p.id_penyedia) !== -1;
       return '<div class="card' + (p.id_penyedia === aktifId ? ' active' : '') + '" data-id="' + p.id_penyedia + '" role="button" tabindex="0">' +
-        '<button class="fav-btn' + (diFav ? ' in-fav' : '') + '" data-id="' + p.id_penyedia + '" title="' + (diFav ? 'Hapus dari favorit' : 'Simpan ke favorit') + '">' + (diFav ? '♥' : '♡') + '</button>' +
-        '<button class="tur-add' + (diTur ? ' in-tur' : '') + '" data-id="' + p.id_penyedia + '" title="' + (diTur ? 'Sudah di tur — klik untuk hapus' : 'Tambah ke tur kuliner') + '">' + (diTur ? '✓ Tur' : '+ Tur') + '</button>' +
         '<img src="' + esc(p.foto || '') + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' +
         '<span class="card-info">' +
           '<h3>' + esc(p.nama_penyedia) + '</h3>' +
@@ -268,18 +261,6 @@
       el.addEventListener('click', function () { pilihPenyedia(Number(el.getAttribute('data-id'))); });
       el.addEventListener('keydown', function (e) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pilihPenyedia(Number(el.getAttribute('data-id'))); }
-      });
-    });
-    box.querySelectorAll('.tur-add').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        toggleTur(Number(btn.getAttribute('data-id')));
-      });
-    });
-    box.querySelectorAll('.fav-btn').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        toggleFav(Number(btn.getAttribute('data-id')));
       });
     });
   }
@@ -631,27 +612,6 @@
     });
   }
 
-  // ---------- Heatmap kepadatan kuliner ----------
-  function toggleHeatmap() {
-    if (engine === 'osm' || !map || !window.google || !google.maps.visualization) {
-      beriTahu('Heatmap hanya tersedia di mode Google Maps.');
-      return;
-    }
-    heatmapAktif = !heatmapAktif;
-    $('btnHeatmap').classList.toggle('active', heatmapAktif);
-    if (heatmapAktif) {
-      var titik = semuaPenyedia.map(function (p) {
-        return new google.maps.LatLng(p.latitude, p.longitude);
-      });
-      heatmapLayer = new google.maps.visualization.HeatmapLayer({
-        data: titik, map: map, radius: 42, opacity: 0.75
-      });
-    } else if (heatmapLayer) {
-      heatmapLayer.setMap(null);
-      heatmapLayer = null;
-    }
-  }
-
   // ---------- Ulasan ----------
   function muatUlasan(id) {
     var box = $('ulasanList');
@@ -814,7 +774,6 @@
       try { rec.start(); } catch (e) { btn.classList.remove('listening'); }
     });
   })();
-  $('btnHeatmap').addEventListener('click', function () { toggleHeatmap(); });
   $('btnBuatRute').addEventListener('click', function () { buatRuteTur(); });
   $('btnHapusTur').addEventListener('click', function () {
     turStops = [];
