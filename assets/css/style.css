@@ -547,3 +547,65 @@ code { background: rgba(0, 180, 216, .15); padding: 1px 6px; border-radius: 6px;
   .tur-bar { bottom: 76px; }
   .map-fab-heat { bottom: 76px; }
 }
+
+/* ============================================================
+   RONDE 6 2026-11-09 — halal, favorit, fasilitas, pembayaran,
+   buka-sekarang, urutkan, pencarian suara
+   ============================================================ */
+
+/* ---------- Tombol mikrofon di kotak cari ---------- */
+.btn-mic {
+  border: 1px solid var(--line); background: rgba(255, 255, 255, .05);
+  color: var(--muted); border-radius: 999px; width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+}
+.btn-mic:hover { color: #fff; border-color: var(--accent); }
+.btn-mic.listening { background: #7f1d2e; border-color: #ef4444; color: #fff; animation: micPulse 1s infinite; }
+@keyframes micPulse { 50% { box-shadow: 0 0 0 6px rgba(239, 68, 68, .25); } }
+
+/* ---------- Chips filter (fasilitas / pembayaran / favorit) ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  border: 1px solid var(--line); background: rgba(255, 255, 255, .04);
+  color: var(--muted); border-radius: 999px; padding: 6px 12px;
+  font-size: 12.5px; font-weight: 600;
+}
+.chip:hover { color: #fff; border-color: var(--accent); }
+.chip.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-color: transparent; color: #fff;
+}
+.filter-ceklis { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.filter-ceklis label { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.filter-ceklis input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+
+/* ---------- Favorit di kartu ---------- */
+.fav-btn {
+  position: absolute; top: 8px; left: 8px; z-index: 2;
+  border: 1px solid var(--line); background: rgba(2, 6, 23, .75); color: #fda4af;
+  border-radius: 999px; width: 28px; height: 28px; font-size: 15px; line-height: 1;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.fav-btn:hover { border-color: #ef4444; }
+.fav-btn.in-fav { background: #7f1d2e; border-color: transparent; color: #fff; }
+
+/* ---------- Badge halal ---------- */
+.badge-halal {
+  display: inline-block; background: #14532d; color: #86efac;
+  border: 1px solid #166534; border-radius: 999px; padding: 3px 9px;
+  font-size: 11px; font-weight: 800; margin-left: 6px; vertical-align: middle;
+}
+.badge-halal[hidden] { display: none; }
+.badge-halal-mini { font-size: 10px; padding: 2px 7px; }
+
+/* ---------- Fasilitas di kartu & detail ---------- */
+.card-fasilitas { display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.card-fasilitas i { color: var(--accent); }
+.detail-ekstra { font-size: 13px; color: var(--muted); margin: 2px 0; }
+.detail-ekstra[hidden] { display: none; }
+.detail-ekstra i { color: var(--accent); margin-right: 4px; }
+
+/* ---------- Checkbox baris di form admin ---------- */
+.check-row { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.check-row label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text); }
+.check-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
