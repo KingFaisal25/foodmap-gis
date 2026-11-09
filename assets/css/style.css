@@ -357,3 +357,96 @@ code { background: rgba(0, 180, 216, .15); padding: 1px 6px; border-radius: 6px;
 @media (max-width: 900px) {
   .globe-wrap { height: 180px; }
 }
+
+/* ============================================================
+   UI/UX ROUND 2026-11-09 — lebih rapih, modern, responsif
+   Semua di bawah ini tambahan; fungsi GIS tidak diubah.
+   ============================================================ */
+
+/* ---------- Fokus keyboard (aksesibilitas) ---------- */
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+
+/* ---------- Hint tombol "/" di kolom pencarian ---------- */
+.search-kbd {
+  flex-shrink: 0; font: 600 11px/1 inherit; color: var(--muted);
+  border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px;
+  padding: 4px 7px; background: rgba(255, 255, 255, .05);
+}
+
+/* ---------- Toggle Peta / Daftar (layar kecil) ---------- */
+.view-toggle { display: none; }
+.toast {
+  position: fixed; left: 50%; bottom: 24px; z-index: 60;
+  transform: translate(-50%, 16px); opacity: 0; pointer-events: none;
+  background: var(--panel-solid); border: 1px solid var(--line);
+  border-radius: 999px; padding: 11px 18px; font-size: 13.5px; font-weight: 600;
+  box-shadow: var(--shadow); max-width: calc(100% - 32px); text-align: center;
+  transition: opacity .25s ease, transform .25s ease;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- Polish kartu: status jadi pill, harga menonjol ---------- */
+.card-meta .buka, .card-meta .tutup {
+  padding: 2px 9px; border-radius: 999px; font-size: 11.5px;
+}
+.card-meta .buka { background: rgba(34, 197, 94, .16); }
+.card-meta .tutup { background: rgba(239, 68, 68, .16); }
+.card-meta b { color: #7dd3fc; }
+.card.active::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  border-radius: 16px 0 0 16px;
+  background: linear-gradient(180deg, var(--accent), var(--accent2));
+}
+.card { position: relative; }
+
+/* ---------- Responsif: HP ---------- */
+@media (max-width: 900px) {
+  /* Toggle tampil sebagai pill melayang di bawah */
+  .view-toggle {
+    display: flex; position: fixed; left: 50%; bottom: 16px; z-index: 40;
+    transform: translateX(-50%);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+    padding: 4px; box-shadow: var(--shadow);
+  }
+  .view-toggle button {
+    border: 0; background: transparent; color: var(--muted);
+    border-radius: 999px; padding: 9px 18px; font-size: 13.5px; font-weight: 700;
+    display: inline-flex; align-items: center; gap: 7px; min-height: 40px;
+  }
+  .view-toggle button.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff; box-shadow: 0 3px 12px rgba(0, 180, 216, .35);
+  }
+  /* Satu tampilan penuh per mode: peta ATAU daftar, bukan ditumpuk */
+  body[data-mobile-view="list"] .map-wrap { display: none; }
+  body[data-mobile-view="list"] .sidebar { min-height: calc(100dvh - 170px); }
+  body[data-mobile-view="map"] .sidebar { display: none; }
+  body[data-mobile-view="map"] .map-wrap { height: calc(100dvh - 118px); min-height: 420px; }
+  body[data-mobile-view="map"] .layout { height: calc(100dvh - 118px); }
+
+  /* Toast naik di atas toggle */
+  .toast { bottom: 76px; }
+
+  /* Chips jadi deretan geser horizontal */
+  .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex-shrink: 0; min-height: 36px; }
+
+  /* Target sentuh lebih besar */
+  .btn { min-height: 42px; }
+  .map-fab { width: 52px; height: 52px; bottom: 76px; }
+
+  /* Panel detail jadi bottom sheet dengan gagang */
+  .detail { border-radius: 22px 22px 0 0; animation: sheetUp .3s ease; }
+  .detail::before {
+    content: ''; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 40px; height: 4px; border-radius: 999px; background: rgba(148, 163, 184, .45); z-index: 3;
+  }
+  .detail-body { padding-top: 20px; }
+  @keyframes sheetUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+
+  /* Sembunyikan hint "/" di HP */
+  .search-kbd { display: none; }
+  /* Kartu sedikit lebih ringkas */
+  .card img { width: 76px; height: 76px; }
+}
