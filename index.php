@@ -35,6 +35,7 @@ $keyReady = mapsKeyReady();
   <div class="search-box">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="search" id="inputCari" placeholder="Cari makanan, warung, kafe..." autocomplete="off">
+    <kbd class="search-kbd" title="Tekan / untuk fokus ke pencarian">/</kbd>
     <button id="btnBersihkan" title="Bersihkan pencarian" hidden><i class="fa-solid fa-xmark"></i></button>
   </div>
 
@@ -147,6 +148,15 @@ $keyReady = mapsKeyReady();
     <button class="map-fab" id="btnLokasiFab" title="Pusatkan ke lokasiku"><i class="fa-solid fa-location-crosshairs"></i></button>
   </section>
 </main>
+
+<!-- Toggle tampilan Peta / Daftar (hanya tampil di layar kecil) -->
+<div class="view-toggle" id="viewToggle" role="tablist" aria-label="Tampilan">
+  <button class="active" data-view="map" role="tab" aria-selected="true"><i class="fa-solid fa-map"></i> Peta</button>
+  <button data-view="list" role="tab" aria-selected="false"><i class="fa-solid fa-list"></i> Daftar</button>
+</div>
+
+<!-- Toast pengganti alert() -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
   // Konfigurasi dari server untuk app.js

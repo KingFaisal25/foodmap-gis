@@ -104,6 +104,7 @@ Begitu billing diaktifkan di project Google Cloud, Google Maps langsung jadi pet
 
 - **Globe 3D interaktif** di sidebar (`assets/js/globe3d.js`, Three.js r128 via CDN): bola kawat + garis lintang + partikel, titik-titik penyedia diambil dari `api.php` (bukan statis). Karena semua penyedia ada di Bandung dengan rentang koordinat yang sangat kecil, posisinya dipetakan **secara skematis (diperlebar)** ke sepetak globe di sekitar Indonesia agar terlihat — ini widget visual, bukan peta ukur. Geser untuk memutar, klik titik untuk membuka kartu penyedia. Satu canvas, satu konteks WebGL; animasi berhenti saat tab tidak aktif / globe tidak terlihat / `prefers-reduced-motion`.
 - **Statistik count-up** (penyedia / menu / kategori) dari `api.php` (`assets/js/polish.js`), animasi masuk kartu berurutan, tilt kartu saat hover (pointer halus saja), garis cahaya animasi di topbar.
+- **UI/UX round 2026-11-09**: toggle Peta/Daftar melayang di layar kecil (satu tampilan penuh per mode, bukan ditumpuk), panel detail jadi bottom sheet dengan gagang, chips geser horizontal, target sentuh ≥40px, toast pengganti `alert()`, shortcut `/` fokus pencarian + `Esc` bersihkan, fokus keyboard terlihat (`:focus-visible`), status Buka/Tutup jadi pill, harga menonjol.
 - Fungsi GIS (peta, rute, filter, admin) tidak diubah.
 
 ## 👤 Admin
