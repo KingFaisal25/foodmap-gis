@@ -67,6 +67,67 @@
     });
   }
 
+  // ---------- Toggle Peta / Daftar (layar kecil) ----------
+  function pasangViewToggle() {
+    var toggle = document.getElementById('viewToggle');
+    var list = document.getElementById('daftarPenyedia');
+    if (!toggle) return;
+    var mqMobile = window.matchMedia('(max-width: 900px)');
+    function setView(v) {
+      document.body.setAttribute('data-mobile-view', v);
+      toggle.querySelectorAll('button').forEach(function (b) {
+        var aktif = b.getAttribute('data-view') === v;
+        b.classList.toggle('active', aktif);
+        b.setAttribute('aria-selected', aktif ? 'true' : 'false');
+      });
+    }
+    toggle.addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('button[data-view]') : null;
+      if (btn) setView(btn.getAttribute('data-view'));
+    });
+    // Klik kartu di mode Daftar (HP): pindah ke mode Peta supaya panel detail terlihat.
+    if (list) {
+      list.addEventListener('click', function () {
+        if (mqMobile.matches && document.body.getAttribute('data-mobile-view') === 'list') setView('map');
+      });
+    }
+    setView('map');
+  }
+
+  // ---------- Toast (dipakai app.js sebagai pengganti alert) ----------
+  function pasangToast() {
+    var toastEl = document.getElementById('toast');
+    if (!toastEl) return;
+    var timer = null;
+    window.__foodmapToast = function (pesan) {
+      toastEl.textContent = pesan;
+      toastEl.classList.add('show');
+      clearTimeout(timer);
+      timer = setTimeout(function () { toastEl.classList.remove('show'); }, 3200);
+    };
+  }
+
+  // ---------- Shortcut keyboard: "/" fokus cari, Esc bersihkan ----------
+  function pasangShortcut() {
+    var input = document.getElementById('inputCari');
+    if (!input) return;
+    document.addEventListener('keydown', function (e) {
+      var tag = (document.activeElement && document.activeElement.tagName) || '';
+      var sedangMengetik = /^(INPUT|TEXTAREA|SELECT)$/.test(tag);
+      if (e.key === '/' && !sedangMengetik) {
+        e.preventDefault();
+        input.focus();
+      } else if (e.key === 'Escape' && document.activeElement === input) {
+        input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.blur();
+      }
+    });
+  }
+
   muatStatistik();
   pasangTilt();
+  pasangViewToggle();
+  pasangToast();
+  pasangShortcut();
 })();

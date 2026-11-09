@@ -31,6 +31,11 @@
 
   // ---------- Util ----------
   function $(id) { return document.getElementById(id); }
+  /** Beri tahu pengguna: toast (polish.js) bila ada, alert() bila tidak. */
+  function beriTahu(pesan) {
+    if (window.__foodmapToast) { window.__foodmapToast(pesan); return; }
+    alert(pesan);
+  }
   function rupiah(n) {
     if (n === null || n === undefined) return '-';
     return 'Rp' + Number(n).toLocaleString('id-ID');
@@ -361,7 +366,7 @@
   // ---------- Geolokasi ----------
   function mintaLokasi(manual) {
     if (!navigator.geolocation) {
-      if (manual) alert('Browser ini tidak mendukung geolokasi.');
+      if (manual) beriTahu('Browser ini tidak mendukung geolokasi.');
       return;
     }
     navigator.geolocation.getCurrentPosition(function (pos) {
@@ -380,7 +385,7 @@
       }
       terapkanFilter();
     }, function () {
-      if (manual) alert('Izin lokasi ditolak atau tidak tersedia. Rute dihitung dari pusat kota Bandung.');
+      if (manual) beriTahu('Izin lokasi ditolak atau tidak tersedia. Rute dihitung dari pusat kota Bandung.');
     }, { timeout: 8000 });
   }
 
