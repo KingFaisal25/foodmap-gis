@@ -127,6 +127,15 @@ Buka `admin.php` → login dengan password di `config.php` (default `admin123`).
 - **Street View + cuaca** — panel detail bisa membuka Street View jalan di depan tempat; pil cuaca Bandung (Open-Meteo, gratis tanpa key) tampil di topbar (desktop).
 - **Dashboard admin** — ringkasan (penyedia/menu/kategori/rating) + grafik batang penyedia per kategori (Chart.js).
 
+## 👥 Fitur untuk semua kalangan
+
+- **Filter Halal** — centang "Halal saja"; status diatur per penyedia di panel admin (pilihan: Halal / Non-halal / Belum terverifikasi — default "Belum terverifikasi", jangan ditebak).
+- **Favorit & bagikan WhatsApp** — tombol ♥ di kartu / panel detail menyimpan favorit (di browser); chip "♥ Favorit" menyaringnya; tombol "Bagikan" mengirim detail tempat + link Google Maps lewat WhatsApp.
+- **Fasilitas** — filter chip WiFi, Parkir, Mushola, Outdoor, Ramah anak; diisi lewat panel admin.
+- **Pembayaran** — filter chip QRIS, Tunai, E-wallet; diisi lewat panel admin.
+- **Buka sekarang + urutkan** — centang "Buka sekarang"; urutan: Nama A–Z, Termurah, Rating tertinggi, Paling dekat (perlu "Lokasi Saya").
+- **Pencarian suara** — tombol mikrofon di kotak cari (Chrome, bahasa Indonesia); bila browser tidak mendukung, tombol disembunyikan.
+
 ## 📝 Jawaban analisis GIS (untuk laporan)
 
 1. **Data spasial vs nonspasial** — *Spasial* adalah data posisi: `latitude`, `longitude`, lokasi di peta, rute, dan jarak. *Nonspasial* (atribut) adalah data penjelas: nama, kategori, alamat, menu, harga, jam operasional, telepon, dan foto. Keduanya terhubung lewat `id_penyedia` sebagai kunci.

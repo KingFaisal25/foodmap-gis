@@ -49,16 +49,21 @@ if ($login && $db && isset($_POST['aksi'])) {
             $tutup = !empty($_POST['jam_tutup']) ? $_POST['jam_tutup'] : null;
             $telp = trim($_POST['no_telepon'] ?? '');
             $foto = trim($_POST['foto'] ?? '');
+            $halal = in_array($_POST['halal'] ?? 'belum', ['halal', 'non-halal', 'belum'], true) ? $_POST['halal'] : 'belum';
+            $fasilitasOk = ['wifi', 'parkir', 'mushola', 'outdoor', 'anak'];
+            $fasilitas = implode(',', array_values(array_intersect((array) ($_POST['fasilitas'] ?? []), $fasilitasOk)));
+            $bayarOk = ['qris', 'tunai', 'ewallet'];
+            $pembayaran = implode(',', array_values(array_intersect((array) ($_POST['pembayaran'] ?? []), $bayarOk)));
             if ($nama === '' || $kategori === '' || $lat === 0.0 || $lng === 0.0) {
                 throw new Exception('Nama, kategori, latitude, dan longitude wajib diisi.');
             }
             if ($id > 0) {
-                $st = $db->prepare('UPDATE penyedia_makanan SET nama_penyedia=?, kategori=?, id_kategori=?, alamat=?, latitude=?, longitude=?, jam_buka=?, jam_tutup=?, no_telepon=?, foto=? WHERE id_penyedia=?');
-                $st->execute([$nama, $kategori, $idKat ?: null, $alamat, $lat, $lng, $buka, $tutup, $telp, $foto, $id]);
+                $st = $db->prepare('UPDATE penyedia_makanan SET nama_penyedia=?, kategori=?, id_kategori=?, alamat=?, latitude=?, longitude=?, jam_buka=?, jam_tutup=?, no_telepon=?, foto=?, halal=?, fasilitas=?, pembayaran=? WHERE id_penyedia=?');
+                $st->execute([$nama, $kategori, $idKat ?: null, $alamat, $lat, $lng, $buka, $tutup, $telp, $foto, $halal, $fasilitas, $pembayaran, $id]);
                 $pesan = 'Penyedia berhasil diperbarui.';
             } else {
-                $st = $db->prepare('INSERT INTO penyedia_makanan (nama_penyedia, kategori, id_kategori, alamat, latitude, longitude, jam_buka, jam_tutup, no_telepon, foto) VALUES (?,?,?,?,?,?,?,?,?,?)');
-                $st->execute([$nama, $kategori, $idKat ?: null, $alamat, $lat, $lng, $buka, $tutup, $telp, $foto]);
+                $st = $db->prepare('INSERT INTO penyedia_makanan (nama_penyedia, kategori, id_kategori, alamat, latitude, longitude, jam_buka, jam_tutup, no_telepon, foto, halal, fasilitas, pembayaran) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');
+                $st->execute([$nama, $kategori, $idKat ?: null, $alamat, $lat, $lng, $buka, $tutup, $telp, $foto, $halal, $fasilitas, $pembayaran]);
                 $pesan = 'Penyedia baru berhasil ditambahkan.';
             }
         } elseif ($aksi === 'hapus_penyedia') {
@@ -238,6 +243,25 @@ if ($db) {
       <div><label>Jam tutup</label><input type="time" name="jam_tutup" value="<?= $edit && $edit['jam_tutup'] ? substr($edit['jam_tutup'], 0, 5) : '' ?>"></div>
       <div><label>No. telepon</label><input name="no_telepon" value="<?= htmlspecialchars($edit['no_telepon'] ?? '') ?>" placeholder="022-... / 08..."></div>
       <div><label>URL foto</label><input name="foto" value="<?= htmlspecialchars($edit['foto'] ?? '') ?>" placeholder="https://..."></div>
+      <div><label>Status halal</label>
+        <select name="halal">
+          <option value="belum" <?= ($edit['halal'] ?? 'belum') === 'belum' ? 'selected' : '' ?>>Belum terverifikasi</option>
+          <option value="halal" <?= ($edit['halal'] ?? '') === 'halal' ? 'selected' : '' ?>>Halal</option>
+          <option value="non-halal" <?= ($edit['halal'] ?? '') === 'non-halal' ? 'selected' : '' ?>>Non-halal</option>
+        </select>
+      </div>
+      <div class="full"><label>Fasilitas</label>
+        <?php $fas = explode(',', $edit['fasilitas'] ?? ''); $fasLabel = ['wifi' => 'WiFi', 'parkir' => 'Parkir', 'mushola' => 'Mushola', 'outdoor' => 'Outdoor', 'anak' => 'Ramah anak']; ?>
+        <div class="check-row"><?php foreach ($fasLabel as $v => $l): ?>
+          <label><input type="checkbox" name="fasilitas[]" value="<?= $v ?>" <?= in_array($v, $fas, true) ? 'checked' : '' ?>> <?= $l ?></label>
+        <?php endforeach; ?></div>
+      </div>
+      <div class="full"><label>Pembayaran</label>
+        <?php $byr = explode(',', $edit['pembayaran'] ?? ''); $byrLabel = ['qris' => 'QRIS', 'tunai' => 'Tunai', 'ewallet' => 'E-wallet']; ?>
+        <div class="check-row"><?php foreach ($byrLabel as $v => $l): ?>
+          <label><input type="checkbox" name="pembayaran[]" value="<?= $v ?>" <?= in_array($v, $byr, true) ? 'checked' : '' ?>> <?= $l ?></label>
+        <?php endforeach; ?></div>
+      </div>
       <div class="full" style="display:flex;gap:10px">
         <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Simpan</button>
         <?php if ($edit): ?><a class="btn btn-ghost" href="admin.php">Batal</a><?php endif; ?>

@@ -79,6 +79,38 @@ $keyReady = mapsKeyReady();
           <option value="10">≤ 10 km</option>
         </select>
       </div>
+      <div class="filter-row">
+        <label for="selectUrut"><i class="fa-solid fa-arrow-down-wide-short"></i> Urutkan</label>
+        <select id="selectUrut">
+          <option value="nama">Nama A–Z</option>
+          <option value="termurah">Termurah</option>
+          <option value="rating">Rating tertinggi</option>
+          <option value="dekat">Paling dekat</option>
+        </select>
+      </div>
+      <div class="filter-row filter-ceklis">
+        <label><input type="checkbox" id="chkHalal"> Halal saja</label>
+        <label><input type="checkbox" id="chkBuka"> Buka sekarang</label>
+        <button class="chip" id="chipFavorit" type="button" title="Hanya tempat favoritmu">♥ Favorit</button>
+      </div>
+      <div class="filter-row">
+        <label><i class="fa-solid fa-wifi"></i> Fasilitas</label>
+        <div class="chips" id="chipFasilitas">
+          <button class="chip" type="button" data-tag="wifi">WiFi</button>
+          <button class="chip" type="button" data-tag="parkir">Parkir</button>
+          <button class="chip" type="button" data-tag="mushola">Mushola</button>
+          <button class="chip" type="button" data-tag="outdoor">Outdoor</button>
+          <button class="chip" type="button" data-tag="anak">Ramah anak</button>
+        </div>
+      </div>
+      <div class="filter-row">
+        <label><i class="fa-solid fa-qrcode"></i> Pembayaran</label>
+        <div class="chips" id="chipPembayaran">
+          <button class="chip" type="button" data-tag="qris">QRIS</button>
+          <button class="chip" type="button" data-tag="tunai">Tunai</button>
+          <button class="chip" type="button" data-tag="ewallet">E-wallet</button>
+        </div>
+      </div>
     </div>
 
     <p class="hasil-info"><span id="jumlahHasil">Memuat...</span></p>
@@ -140,9 +172,12 @@ $keyReady = mapsKeyReady();
         <div class="detail-head">
           <h2 id="detailNama">-</h2>
           <span class="badge" id="detailKategori">-</span>
+          <span class="badge-halal" id="detailHalal" hidden>✓ Halal</span>
         </div>
         <p class="detail-status"><span class="dot-buka" id="detailStatusDot"></span><span id="detailStatus">-</span></p>
         <p class="detail-alamat"><i class="fa-solid fa-location-dot"></i> <span id="detailAlamat">-</span></p>
+        <p class="detail-ekstra" id="detailFasilitas" hidden></p>
+        <p class="detail-ekstra" id="detailPembayaran" hidden></p>
         <p class="detail-meta">
           <span><i class="fa-regular fa-clock"></i> <span id="detailJam">-</span></span>
           <a id="detailTelepon" href="#"><i class="fa-solid fa-phone"></i> <span id="detailTeleponText">-</span></a>
@@ -170,6 +205,8 @@ $keyReady = mapsKeyReady();
         <div class="detail-actions">
           <button class="btn btn-primary" id="btnRute"><i class="fa-solid fa-route"></i> Rute ke Sini</button>
           <button class="btn btn-ghost" id="btnTambahTur" type="button" title="Tambah ke tur kuliner"><i class="fa-solid fa-plus"></i> Tur</button>
+          <button class="btn btn-ghost" id="btnFav" type="button" title="Simpan ke favorit"><i class="fa-regular fa-heart"></i> Favorit</button>
+          <a class="btn btn-ghost" id="btnShareWa" href="#" target="_blank" rel="noopener" title="Bagikan ke WhatsApp"><i class="fa-brands fa-whatsapp"></i> Bagikan</a>
           <a class="btn btn-ghost" id="btnGmaps" href="#" target="_blank" rel="noopener"><i class="fa-solid fa-map-location-dot"></i> Google Maps</a>
         </div>
       </div>
