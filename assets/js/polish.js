@@ -125,9 +125,34 @@
     });
   }
 
+  // ---------- Cuaca Bandung (Open-Meteo, gratis tanpa key) ----------
+  function muatCuaca() {
+    var pill = document.getElementById('cuacaPill');
+    var text = document.getElementById('cuacaText');
+    if (!pill || !text) return;
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.9218&longitude=107.6077&current=temperature_2m,weather_code&timezone=Asia%2FJakarta')
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.current) return;
+        var kode = d.current.weather_code;
+        var label = 'Berawan';
+        if (kode === 0) label = 'Cerah';
+        else if (kode === 1 || kode === 2) label = 'Cerah berawan';
+        else if (kode === 3) label = 'Mendung';
+        else if (kode === 45 || kode === 48) label = 'Berkabut';
+        else if (kode >= 51 && kode <= 57) label = 'Gerimis';
+        else if ((kode >= 61 && kode <= 67) || (kode >= 80 && kode <= 82)) label = 'Hujan';
+        else if (kode >= 95) label = 'Hujan badai';
+        text.textContent = 'Bandung ' + Math.round(d.current.temperature_2m) + '°C · ' + label;
+        pill.hidden = false;
+      })
+      .catch(function () { /* cuaca opsional — diam bila gagal */ });
+  }
+
   muatStatistik();
   pasangTilt();
   pasangViewToggle();
   pasangToast();
   pasangShortcut();
+  muatCuaca();
 })();

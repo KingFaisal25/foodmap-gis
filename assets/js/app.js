@@ -27,7 +27,18 @@
   var userMarker = null;
   var userLoc = null;
   var aktifId = null;
-  var filter = { q: '', kategori: 'Semua', maxHarga: '' };
+  var filter = { q: '', kategori: 'Semua', maxHarga: '', radiusKm: '' };
+  // Tur kuliner: daftar id penyedia (tersimpan di localStorage)
+  var turStops = [];
+  try {
+    turStops = JSON.parse(localStorage.getItem('foodmap_tur') || '[]') || [];
+  } catch (e) { turStops = []; }
+  // Heatmap kepadatan kuliner
+  var heatmapLayer = null;
+  var heatmapAktif = false;
+  // Street View di panel detail
+  var streetPano = null;
+  var streetUntukId = null;
 
   // ---------- Util ----------
   function $(id) { return document.getElementById(id); }
@@ -72,6 +83,19 @@
     };
   }
   function warnaKategori(p) { return p.warna || '#00b4d8'; }
+  /** Jarak (km) dari lokasi pengguna ke penyedia; null bila lokasi belum ada. */
+  function jarakKm(p) {
+    if (!userLoc) return null;
+    return haversineKm(userLoc, { lat: p.latitude, lng: p.longitude });
+  }
+  /** Bintang rating: ★★★★☆ + angka, atau '-' bila belum ada ulasan. */
+  function bintangHtml(avg, count) {
+    if (!count || avg === null || avg === undefined) return '<span class="rating-kosong">Belum ada rating</span>';
+    var penuh = Math.round(avg);
+    var s = '';
+    for (var i = 1; i <= 5; i++) s += i <= penuh ? '★' : '☆';
+    return '<span class="rating-bintang">' + s + '</span> <b>' + Number(avg).toFixed(1).replace('.', ',') + '</b> (' + count + ')';
+  }
 
   // ---------- Ambil data ----------
   function ambilJSON(url) {
@@ -132,6 +156,10 @@
   function cocokFilter(p) {
     if (filter.kategori !== 'Semua' && p.kategori !== filter.kategori) return false;
     if (filter.maxHarga !== '' && p.harga_termurah !== null && p.harga_termurah > Number(filter.maxHarga)) return false;
+    if (filter.radiusKm !== '') {
+      var km = jarakKm(p);
+      if (km === null || km > Number(filter.radiusKm)) return false;
+    }
     if (filter.q) {
       var q = filter.q.toLowerCase();
       var hay = (p.nama_penyedia + ' ' + (p.alamat || '') + ' ' + p.kategori).toLowerCase();
@@ -142,6 +170,10 @@
 
   function terapkanFilter() {
     var hasil = semuaPenyedia.filter(cocokFilter);
+    // Bila filter jarak aktif, urutkan dari yang terdekat.
+    if (filter.radiusKm !== '' && userLoc) {
+      hasil.sort(function (a, b) { return jarakKm(a) - jarakKm(b); });
+    }
     renderDaftar(hasil);
     renderMarker(hasil);
     $('jumlahHasil').innerHTML = '<b>' + hasil.length + '</b> dari ' + semuaPenyedia.length + ' penyedia makanan';
@@ -157,7 +189,9 @@
     box.innerHTML = hasil.map(function (p) {
       var st = statusBuka(p);
       var j = jarakText(p);
-      return '<button class="card' + (p.id_penyedia === aktifId ? ' active' : '') + '" data-id="' + p.id_penyedia + '">' +
+      var diTur = turStops.indexOf(p.id_penyedia) !== -1;
+      return '<div class="card' + (p.id_penyedia === aktifId ? ' active' : '') + '" data-id="' + p.id_penyedia + '" role="button" tabindex="0">' +
+        '<button class="tur-add' + (diTur ? ' in-tur' : '') + '" data-id="' + p.id_penyedia + '" title="' + (diTur ? 'Sudah di tur — klik untuk hapus' : 'Tambah ke tur kuliner') + '">' + (diTur ? '✓ Tur' : '+ Tur') + '</button>' +
         '<img src="' + esc(p.foto || '') + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">' +
         '<span class="card-info">' +
           '<h3>' + esc(p.nama_penyedia) + '</h3>' +
@@ -169,10 +203,20 @@
             (j ? '<span><i class="fa-solid fa-road"></i> ' + j + '</span>' : '') +
             (st.buka === null ? '' : '<span class="' + (st.buka ? 'buka' : 'tutup') + '">' + (st.buka ? '● Buka' : '● Tutup') + '</span>') +
           '</span>' +
-        '</span></button>';
+          '<span class="card-rating">' + bintangHtml(p.rating_avg, p.ulasan_count) + '</span>' +
+        '</span></div>';
     }).join('');
     box.querySelectorAll('.card').forEach(function (el) {
       el.addEventListener('click', function () { pilihPenyedia(Number(el.getAttribute('data-id'))); });
+      el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pilihPenyedia(Number(el.getAttribute('data-id'))); }
+      });
+    });
+    box.querySelectorAll('.tur-add').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        toggleTur(Number(btn.getAttribute('data-id')));
+      });
     });
   }
 
@@ -320,6 +364,28 @@
     var orig = userLoc ? (userLoc.lat + ',' + userLoc.lng) : '';
     $('btnGmaps').href = 'https://www.google.com/maps/dir/?api=1' + (orig ? '&origin=' + orig : '') + '&destination=' + dest;
     $('btnRute').onclick = function () { buatRute(p); };
+    // Rating + ulasan
+    $('ulasanRata').innerHTML = bintangHtml(p.rating_avg, p.ulasan_count);
+    muatUlasan(p.id_penyedia);
+    var formU = $('formUlasan');
+    if (formU) {
+      formU.dataset.id = p.id_penyedia;
+      var stEl = $('ulasanStatus');
+      if (stEl) stEl.hidden = true;
+    }
+    // Street View: reset tiap ganti penyedia
+    var streetBox = $('detailStreet');
+    if (streetBox) streetBox.hidden = true;
+    var streetBtn = $('btnStreet');
+    if (streetBtn) streetBtn.innerHTML = '<i class="fa-solid fa-eye"></i> Lihat Jalan di Depan Tempat Ini';
+    if (streetBtn) streetBtn.onclick = function () { toggleStreet(p); };
+    // Tombol + Tur
+    var btnTur = $('btnTambahTur');
+    if (btnTur) {
+      var diTur = turStops.indexOf(p.id_penyedia) !== -1;
+      btnTur.innerHTML = diTur ? '<i class="fa-solid fa-check"></i> Di Tur' : '<i class="fa-solid fa-plus"></i> Tur';
+      btnTur.onclick = function () { toggleTur(p.id_penyedia); };
+    }
     $('panelDetail').hidden = false;
   }
 
@@ -363,6 +429,179 @@
     });
   }
 
+  // ---------- Tur kuliner (multi-tujuan) ----------
+  function simpanTur() {
+    try { localStorage.setItem('foodmap_tur', JSON.stringify(turStops)); } catch (e) { /* abaikan */ }
+  }
+  function namaPenyedia(id) {
+    for (var i = 0; i < semuaPenyedia.length; i++) if (semuaPenyedia[i].id_penyedia === id) return semuaPenyedia[i].nama_penyedia;
+    return 'Penyedia #' + id;
+  }
+  function cariPenyedia(id) {
+    for (var i = 0; i < semuaPenyedia.length; i++) if (semuaPenyedia[i].id_penyedia === id) return semuaPenyedia[i];
+    return null;
+  }
+  function renderTurBar() {
+    var bar = $('turBar');
+    if (!bar) return;
+    if (!turStops.length) { bar.hidden = true; return; }
+    bar.hidden = false;
+    $('turInfo').textContent = 'Tur Kuliner (' + turStops.length + '): ' +
+      turStops.map(namaPenyedia).join(' → ');
+    $('btnBuatRute').disabled = turStops.length < 1;
+  }
+  function toggleTur(id) {
+    var i = turStops.indexOf(id);
+    if (i === -1) {
+      if (turStops.length >= 8) { beriTahu('Tur maksimal 8 tempat.'); return; }
+      turStops.push(id);
+      beriTahu(namaPenyedia(id) + ' masuk ke tur kuliner.');
+    } else {
+      turStops.splice(i, 1);
+    }
+    simpanTur();
+    renderTurBar();
+    terapkanFilter(); // segarkan tombol + Tur di kartu
+  }
+  /** Urutan kunjungan terbaik (nearest-neighbor dari titik awal) — untuk mode OSM. */
+  function urutanTerbaik(stops, awal) {
+    var sisa = stops.slice(), urutan = [], pos = awal;
+    while (sisa.length) {
+      var terbaik = 0, jarakTerbaik = Infinity;
+      sisa.forEach(function (id, idx) {
+        var p = cariPenyedia(id);
+        if (!p) return;
+        var d = haversineKm(pos, { lat: p.latitude, lng: p.longitude });
+        if (d < jarakTerbaik) { jarakTerbaik = d; terbaik = idx; }
+      });
+      var id = sisa.splice(terbaik, 1)[0];
+      var p = cariPenyedia(id);
+      if (p) { urutan.push(p); pos = { lat: p.latitude, lng: p.longitude }; }
+    }
+    return urutan;
+  }
+  function buatRuteTur() {
+    if (!turStops.length) return;
+    var awal = userLoc || DEFAULT_POS;
+    var gmapsUrl = 'https://www.google.com/maps/dir/?api=1' +
+      '&origin=' + awal.lat + ',' + awal.lng +
+      '&destination=' + (function () { var p = cariPenyedia(turStops[turStops.length - 1]); return p ? p.latitude + ',' + p.longitude : ''; })() +
+      (turStops.length > 1 ? '&waypoints=' + turStops.slice(0, -1).map(function (id) { var p = cariPenyedia(id); return p ? p.latitude + ',' + p.longitude : ''; }).filter(Boolean).join('|') : '');
+    $('routeGmaps').href = gmapsUrl;
+    // Mode OSM: garis lurus antar pemberhentian (urutan terbaik) + total jarak.
+    if (engine === 'osm' && osmMap) {
+      var urutan = urutanTerbaik(turStops, awal);
+      if (osmRouteLine) osmMap.removeLayer(osmRouteLine);
+      var titik = [[awal.lat, awal.lng]].concat(urutan.map(function (p) { return [p.latitude, p.longitude]; }));
+      osmRouteLine = L.polyline(titik, { color: '#8b5cf6', weight: 4, dashArray: '8, 8' }).addTo(osmMap);
+      osmMap.fitBounds(osmRouteLine.getBounds().pad(0.35));
+      var total = 0;
+      for (var i = 1; i < titik.length; i++) total += haversineKm({ lat: titik[i - 1][0], lng: titik[i - 1][1] }, { lat: titik[i][0], lng: titik[i][1] });
+      $('routeBar').hidden = false;
+      $('routeInfo').textContent = 'Tur kuliner: ' + urutan.length + ' tempat · ±' +
+        (total < 1 ? Math.round(total * 1000) + ' m' : total.toFixed(1).replace('.', ',') + ' km') +
+        ' garis lurus — navigasi jalan lewat Google Maps.';
+      return;
+    }
+    if (!map || !directionsService) { window.open(gmapsUrl, '_blank'); return; }
+    var tujuan = urutanTerbaik(turStops, awal);
+    if (!tujuan.length) return;
+    var dest = tujuan[tujuan.length - 1];
+    var waypoints = tujuan.slice(0, -1).map(function (p) {
+      return { location: { lat: p.latitude, lng: p.longitude }, stopover: true };
+    });
+    $('routeBar').hidden = false;
+    $('routeInfo').textContent = 'Menghitung rute tur kuliner (' + tujuan.length + ' tempat)...';
+    directionsService.route({
+      origin: awal,
+      destination: { lat: dest.latitude, lng: dest.longitude },
+      waypoints: waypoints,
+      optimizeWaypoints: true, // Google urutkan pemberhentian paling efisien
+      travelMode: google.maps.TravelMode.DRIVING
+    }, function (res, status) {
+      if (status === 'OK' && res.routes.length) {
+        directionsRenderer.setDirections(res);
+        var totalJarak = 0, totalWaktu = 0, urutanNama = [];
+        res.routes[0].legs.forEach(function (leg) {
+          totalJarak += leg.distance.value;
+          totalWaktu += leg.duration.value;
+          urutanNama.push(leg.end_address.split(',')[0]);
+        });
+        var km = (totalJarak / 1000).toFixed(1).replace('.', ',');
+        var mnt = Math.round(totalWaktu / 60);
+        $('routeInfo').textContent = 'Tur kuliner: ' + tujuan.length + ' tempat · ' + km + ' km · ±' + mnt + ' mnt · ' + urutanNama.join(' → ');
+      } else {
+        $('routeInfo').textContent = 'Rute tur tidak dapat dihitung di sini — buka di Google Maps.';
+      }
+    });
+  }
+
+  // ---------- Heatmap kepadatan kuliner ----------
+  function toggleHeatmap() {
+    if (engine === 'osm' || !map || !window.google || !google.maps.visualization) {
+      beriTahu('Heatmap hanya tersedia di mode Google Maps.');
+      return;
+    }
+    heatmapAktif = !heatmapAktif;
+    $('btnHeatmap').classList.toggle('active', heatmapAktif);
+    if (heatmapAktif) {
+      var titik = semuaPenyedia.map(function (p) {
+        return new google.maps.LatLng(p.latitude, p.longitude);
+      });
+      heatmapLayer = new google.maps.visualization.HeatmapLayer({
+        data: titik, map: map, radius: 42, opacity: 0.75
+      });
+    } else if (heatmapLayer) {
+      heatmapLayer.setMap(null);
+      heatmapLayer = null;
+    }
+  }
+
+  // ---------- Ulasan ----------
+  function muatUlasan(id) {
+    var box = $('ulasanList');
+    if (!box) return;
+    box.innerHTML = '<p class="ulasan-kosong">Memuat ulasan...</p>';
+    ambilJSON(API + '?action=ulasan&id=' + id).then(function (res) {
+      if (!res.ok || !res.data || !res.data.length) {
+        box.innerHTML = '<p class="ulasan-kosong">Belum ada ulasan — jadilah yang pertama!</p>';
+        return;
+      }
+      box.innerHTML = res.data.map(function (u) {
+        var s = '';
+        for (var i = 1; i <= 5; i++) s += i <= u.rating ? '★' : '☆';
+        return '<div class="ulasan-item"><div class="ulasan-head"><strong>' + esc(u.nama) + '</strong>' +
+          '<span class="rating-bintang">' + s + '</span></div>' +
+          '<p>' + esc(u.komentar) + '</p>' +
+          '<small>' + esc(String(u.created_at || '').slice(0, 10)) + '</small></div>';
+      }).join('');
+    }).catch(function () {
+      box.innerHTML = '<p class="ulasan-kosong">Ulasan tidak dapat dimuat.</p>';
+    });
+  }
+
+  // ---------- Street View ----------
+  function toggleStreet(p) {
+    var box = $('detailStreet');
+    var btn = $('btnStreet');
+    if (!box || !btn) return;
+    if (engine !== 'google' || !window.google) {
+      beriTahu('Street View hanya tersedia di mode Google Maps.');
+      return;
+    }
+    if (!box.hidden) { box.hidden = true; btn.innerHTML = '<i class="fa-solid fa-eye"></i> Lihat Jalan di Depan Tempat Ini'; return; }
+    box.hidden = false;
+    btn.innerHTML = '<i class="fa-solid fa-eye-slash"></i> Sembunyikan Street View';
+    if (!streetPano || streetUntukId !== p.id_penyedia) {
+      streetPano = new google.maps.StreetViewPanorama(box, {
+        position: { lat: p.latitude, lng: p.longitude },
+        pov: { heading: 0, pitch: 0 },
+        zoom: 1, addressControl: false, fullscreenControl: false
+      });
+      streetUntukId = p.id_penyedia;
+    }
+  }
+
   // ---------- Geolokasi ----------
   function mintaLokasi(manual) {
     if (!navigator.geolocation) {
@@ -371,6 +610,9 @@
     }
     navigator.geolocation.getCurrentPosition(function (pos) {
       userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      // Lokasi diketahui: aktifkan filter jarak.
+      var selRadius = $('selectRadius');
+      if (selRadius) { selRadius.disabled = false; selRadius.title = ''; }
       if (engine === 'osm') {
         tandaiLokasiOsm();
         if (osmMap) osmMap.setView([userLoc.lat, userLoc.lng], 14);
@@ -407,6 +649,59 @@
     filter.maxHarga = e.target.value;
     terapkanFilter();
   });
+  $('selectRadius').addEventListener('change', function (e) {
+    filter.radiusKm = e.target.value;
+    terapkanFilter();
+    if (e.target.value !== '' && !userLoc) beriTahu('Aktifkan "Lokasi Saya" dulu untuk filter jarak.');
+  });
+  $('btnHeatmap').addEventListener('click', function () { toggleHeatmap(); });
+  $('btnBuatRute').addEventListener('click', function () { buatRuteTur(); });
+  $('btnHapusTur').addEventListener('click', function () {
+    turStops = [];
+    simpanTur();
+    renderTurBar();
+    terapkanFilter();
+    $('routeBar').hidden = true;
+    if (directionsRenderer) directionsRenderer.setDirections({ routes: [] });
+    if (osmRouteLine && osmMap) { osmMap.removeLayer(osmRouteLine); osmRouteLine = null; }
+  });
+  $('formUlasan').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var id = Number(this.dataset.id || 0);
+    if (!id) return;
+    var nama = $('ulasanNama').value.trim();
+    var rating = $('ulasanRating').value;
+    var komentar = $('ulasanKomentar').value.trim();
+    var stEl = $('ulasanStatus');
+    var data = new URLSearchParams();
+    data.append('id_penyedia', id);
+    data.append('nama', nama);
+    data.append('rating', rating);
+    data.append('komentar', komentar);
+    fetch(API + '?action=tambah_ulasan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: data.toString()
+    }).then(function (r) { return r.json(); }).then(function (res) {
+      if (stEl) { stEl.hidden = false; stEl.textContent = res.ok ? 'Terima kasih! Ulasanmu sudah tersimpan.' : ('Gagal: ' + (res.error || 'coba lagi')); }
+      if (res.ok) {
+        $('ulasanNama').value = '';
+        $('ulasanKomentar').value = '';
+        muatUlasan(id);
+        // Segarkan rata-rata di kartu + panel detail
+        ambilJSON(API + '?action=detail&id=' + id).then(function (d) {
+          if (d.ok) {
+            $('ulasanRata').innerHTML = bintangHtml(d.data.rating_avg, d.data.ulasan_count);
+            var p = cariPenyedia(id);
+            if (p) { p.rating_avg = d.data.rating_avg; p.ulasan_count = d.data.ulasan_count; }
+            terapkanFilter();
+          }
+        }).catch(function () { /* abaikan */ });
+      }
+    }).catch(function () {
+      if (stEl) { stEl.hidden = false; stEl.textContent = 'Gagal mengirim ulasan — periksa koneksi.'; }
+    });
+  });
   $('btnLokasiSaya').addEventListener('click', function () { mintaLokasi(true); });
   $('btnLokasiFab').addEventListener('click', function () { mintaLokasi(true); });
   $('btnTutupDetail').addEventListener('click', function () {
@@ -430,4 +725,5 @@
   }
 
   muatAwal();
+  renderTurBar();
 })();
