@@ -118,12 +118,13 @@ Buka `admin.php` → login dengan password di `config.php` (default `admin123`).
 
 20 penyedia makanan di kota **Bandung** (Batagor Kingsley, Mie Kocok Persib, Warung Nasi Ampera, Sate Anggrek, Kupat Tahu Gempol, dan lainnya) dengan foto dari Unsplash. **Koordinat adalah perkiraan di area jalan yang tercantum** untuk keperluan demo tugas — sesuaikan ke koordinat persis bila dipakai produksi.
 
-## 🚀 Fitur canggih
+## 🎨 Desain: depan sepi, dalam lengkap (perapihan 2026-11-09)
 
-- **Tur kuliner** — tekan `+ Tur` di kartu / panel detail untuk menambah tempat (maks. 8, tersimpan di browser). Tekan `Buat Rute`: Google Maps mengurutkan pemberhentian paling efisien (`optimizeWaypoints`) dan menampilkan total jarak + waktu; mode OpenStreetMap memakai garis lurus + jarak haversine.
+Yang tampil di depan hanya yang dipakai semua orang: cari (teks + suara), kategori, urutkan, "Buka sekarang", daftar tempat, peta, dan statistik. Filter lanjutan (harga, jarak, halal, fasilitas, pembayaran, favorit) dilipat di "Filter lainnya". Tombol "+ Tur" & hati favorit hanya ada di panel detail, bukan di tiap kartu. Globe 3D & heatmap dihapus — globe hampir tak terlihat tapi membebani loading, heatmap jarang dipakai pengguna umum (keduanya tetap tercatat di riwayat commit bila ingin dikembalikan).
+
+- **Tur kuliner** — tekan `+ Tur` di panel detail untuk menambah tempat (maks. 8, tersimpan di browser). Tekan `Buat Rute`: Google Maps mengurutkan pemberhentian paling efisien (`optimizeWaypoints`) dan menampilkan total jarak + waktu; mode OpenStreetMap memakai garis lurus + jarak haversine.
 - **Rating & ulasan** — tiap penyedia bisa diberi bintang 1–5 + komentar (tabel `ulasan`, lihat `database/migrasi_ulasan.sql`). Rata-rata tampil di kartu & panel detail; admin bisa menghapus ulasan di halaman `admin.php?menu=<id>`.
 - **Terdekat dari saya** — filter jarak (≤1/3/5/10 km) dari lokasimu, hasil diurutkan dari yang terdekat. Aktif setelah menekan `Lokasi Saya`.
-- **Heatmap** — tombol api di peta menampilkan peta panas kepadatan kuliner (Google Maps Visualization).
 - **Street View + cuaca** — panel detail bisa membuka Street View jalan di depan tempat; pil cuaca Bandung (Open-Meteo, gratis tanpa key) tampil di topbar (desktop).
 - **Dashboard admin** — ringkasan (penyedia/menu/kategori/rating) + grafik batang penyedia per kategori (Chart.js).
 

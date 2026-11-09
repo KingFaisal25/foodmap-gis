@@ -54,31 +54,10 @@ $keyReady = mapsKeyReady();
 <main class="layout">
   <!-- ============ SIDEBAR: filter + daftar ============ -->
   <aside class="sidebar" id="sidebar">
-    <!-- Globe 3D sebagai background di belakang daftar makanan -->
-    <div class="globe-bg" id="globeBg"><canvas id="globe3d" aria-label="Peta 3D penyedia makanan di Bandung"></canvas></div>
 
     <div class="filter-bar">
       <div class="chips" id="chipsKategori">
         <button class="chip active" data-kategori="Semua">Semua</button>
-      </div>
-      <div class="filter-row">
-        <label for="selectHarga"><i class="fa-solid fa-tag"></i> Harga termurah</label>
-        <select id="selectHarga">
-          <option value="">Semua harga</option>
-          <option value="15000">s.d. Rp15.000</option>
-          <option value="20000">s.d. Rp20.000</option>
-          <option value="30000">s.d. Rp30.000</option>
-        </select>
-      </div>
-      <div class="filter-row">
-        <label for="selectRadius"><i class="fa-solid fa-location-dot"></i> Jarak dari saya</label>
-        <select id="selectRadius" disabled title="Aktifkan 'Lokasi Saya' dulu">
-          <option value="">Semua jarak</option>
-          <option value="1">≤ 1 km</option>
-          <option value="3">≤ 3 km</option>
-          <option value="5">≤ 5 km</option>
-          <option value="10">≤ 10 km</option>
-        </select>
       </div>
       <div class="filter-row">
         <label for="selectUrut"><i class="fa-solid fa-arrow-down-wide-short"></i> Urutkan</label>
@@ -90,39 +69,62 @@ $keyReady = mapsKeyReady();
         </select>
       </div>
       <div class="filter-row filter-ceklis">
-        <label><input type="checkbox" id="chkHalal"> Halal saja</label>
         <label><input type="checkbox" id="chkBuka"> Buka sekarang</label>
-        <button class="chip" id="chipFavorit" type="button" title="Hanya tempat favoritmu">♥ Favorit</button>
       </div>
-      <div class="filter-row">
-        <label><i class="fa-solid fa-wifi"></i> Fasilitas</label>
-        <div class="chips" id="chipFasilitas">
-          <button class="chip" type="button" data-tag="wifi">WiFi</button>
-          <button class="chip" type="button" data-tag="parkir">Parkir</button>
-          <button class="chip" type="button" data-tag="mushola">Mushola</button>
-          <button class="chip" type="button" data-tag="outdoor">Outdoor</button>
-          <button class="chip" type="button" data-tag="anak">Ramah anak</button>
+      <details class="filter-lanjutan" id="filterLanjutan">
+        <summary><i class="fa-solid fa-sliders"></i> Filter lainnya</summary>
+        <div class="filter-row">
+          <label for="selectHarga"><i class="fa-solid fa-tag"></i> Harga termurah</label>
+          <select id="selectHarga">
+            <option value="">Semua harga</option>
+            <option value="15000">s.d. Rp15.000</option>
+            <option value="20000">s.d. Rp20.000</option>
+            <option value="30000">s.d. Rp30.000</option>
+          </select>
         </div>
-      </div>
-      <div class="filter-row">
-        <label><i class="fa-solid fa-qrcode"></i> Pembayaran</label>
-        <div class="chips" id="chipPembayaran">
-          <button class="chip" type="button" data-tag="qris">QRIS</button>
-          <button class="chip" type="button" data-tag="tunai">Tunai</button>
-          <button class="chip" type="button" data-tag="ewallet">E-wallet</button>
+        <div class="filter-row">
+          <label for="selectRadius"><i class="fa-solid fa-location-dot"></i> Jarak dari saya</label>
+          <select id="selectRadius" disabled title="Aktifkan 'Lokasi Saya' dulu">
+            <option value="">Semua jarak</option>
+            <option value="1">≤ 1 km</option>
+            <option value="3">≤ 3 km</option>
+            <option value="5">≤ 5 km</option>
+            <option value="10">≤ 10 km</option>
+          </select>
         </div>
-      </div>
+        <div class="filter-row filter-ceklis">
+          <label><input type="checkbox" id="chkHalal"> Halal saja</label>
+          <button class="chip" id="chipFavorit" type="button" title="Hanya tempat favoritmu">♥ Favorit</button>
+        </div>
+        <div class="filter-row">
+          <label><i class="fa-solid fa-wifi"></i> Fasilitas</label>
+          <div class="chips" id="chipFasilitas">
+            <button class="chip" type="button" data-tag="wifi">WiFi</button>
+            <button class="chip" type="button" data-tag="parkir">Parkir</button>
+            <button class="chip" type="button" data-tag="mushola">Mushola</button>
+            <button class="chip" type="button" data-tag="outdoor">Outdoor</button>
+            <button class="chip" type="button" data-tag="anak">Ramah anak</button>
+          </div>
+        </div>
+        <div class="filter-row">
+          <label><i class="fa-solid fa-qrcode"></i> Pembayaran</label>
+          <div class="chips" id="chipPembayaran">
+            <button class="chip" type="button" data-tag="qris">QRIS</button>
+            <button class="chip" type="button" data-tag="tunai">Tunai</button>
+            <button class="chip" type="button" data-tag="ewallet">E-wallet</button>
+          </div>
+        </div>
+      </details>
     </div>
 
     <p class="hasil-info"><span id="jumlahHasil">Memuat...</span></p>
 
-    <!-- Statistik + hint globe -->
+    <!-- Statistik -->
     <div class="stats-strip" id="statsStrip">
       <div class="stat"><b id="statPenyedia">0</b><span>Penyedia</span></div>
       <div class="stat"><b id="statMenu">0</b><span>Menu</span></div>
       <div class="stat"><b id="statKategori">0</b><span>Kategori</span></div>
     </div>
-    <p class="globe-hint"><i class="fa-solid fa-earth-asia"></i> Peta 3D berputar di belakang daftar</p>
 
     <div class="list" id="daftarPenyedia">
       <div class="skeleton"></div>
@@ -214,7 +216,6 @@ $keyReady = mapsKeyReady();
     </article>
 
     <button class="map-fab" id="btnLokasiFab" title="Pusatkan ke lokasiku"><i class="fa-solid fa-location-crosshairs"></i></button>
-    <button class="map-fab map-fab-heat" id="btnHeatmap" title="Tampilkan heatmap kepadatan kuliner"><i class="fa-solid fa-fire"></i></button>
 
     <!-- Bar tur kuliner -->
     <div class="tur-bar" id="turBar" hidden>
@@ -246,10 +247,9 @@ $keyReady = mapsKeyReady();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="assets/js/app.js?v=<?= filemtime(__DIR__ . '/assets/js/app.js') ?>"></script>
-<script defer src="assets/js/globe3d.js?v=<?= filemtime(__DIR__ . '/assets/js/globe3d.js') ?>"></script>
 <script defer src="assets/js/polish.js?v=<?= filemtime(__DIR__ . '/assets/js/polish.js') ?>"></script>
 <?php if ($keyReady): ?>
-<script async defer onerror="mapLoadFailed()" src="https://maps.googleapis.com/maps/api/js?key=<?= urlencode(GOOGLE_MAPS_API_KEY) ?>&libraries=geometry,visualization&callback=initMap"></script>
+<script async defer onerror="mapLoadFailed()" src="https://maps.googleapis.com/maps/api/js?key=<?= urlencode(GOOGLE_MAPS_API_KEY) ?>&libraries=geometry&callback=initMap"></script>
 <?php endif; ?>
 </body>
 </html>
