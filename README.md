@@ -94,6 +94,12 @@ API key **tidak bisa dibuat dari kode** — key terikat akun Google Cloud + pena
 
 > Tanpa key, aplikasi tetap berjalan: daftar penyedia, pencarian, filter, dan detail tetap tampil dari database — hanya petanya yang menampilkan kartu petunjuk.
 
+## 🗺️ Mode peta: Google Maps (utama) + OpenStreetMap (cadangan otomatis)
+
+Sesuai tugas, **Google Maps API adalah peta utama** (marker, detail, rute Directions). Bila Google Maps gagal dimuat — mis. API key belum diisi, **billing belum diaktifkan**, atau CDN Google terblokir — aplikasi **otomatis beralih ke OpenStreetMap + Leaflet** (gratis, tanpa key, tanpa billing), lengkap dengan marker, detail, geolokasi, dan garis rute. Ada penanda kecil "Peta: OpenStreetMap" di pojok peta saat mode cadangan aktif.
+
+Begitu billing diaktifkan di project Google Cloud, Google Maps langsung jadi peta utama lagi tanpa perlu mengubah kode. Tombol "Buka di Google Maps" (link `google.com/maps/dir`) tetap berfungsi di semua mode karena tidak butuh API key.
+
 ## 👤 Admin
 
 Buka `admin.php` → login dengan password di `config.php` (default `admin123`).

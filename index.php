@@ -18,6 +18,7 @@ $keyReady = mapsKeyReady();
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="assets/css/style.css">
 </head>
 <body>
@@ -81,20 +82,23 @@ $keyReady = mapsKeyReady();
   <section class="map-wrap">
     <div id="peta"></div>
 
-    <!-- Kartu petunjuk bila API key belum diisi / peta gagal dimuat -->
+    <!-- Kartu petunjuk bila SEMUA peta gagal dimuat (Google Maps + OpenStreetMap) -->
     <div class="map-notice" id="mapNotice" <?= $keyReady ? 'hidden' : '' ?>>
       <div class="map-notice-card">
         <i class="fa-solid fa-map-location-dot"></i>
-        <h2>Peta Google Maps belum aktif</h2>
-        <p>Isi <code>GOOGLE_MAPS_API_KEY</code> di file <code>config.php</code> dengan API key dari Google Cloud Console. Daftar penyedia di samping tetap tampil karena datanya dari database.</p>
+        <h2>Peta tidak dapat dimuat</h2>
+        <p>Google Maps butuh API key + billing aktif, dan peta cadangan (OpenStreetMap) juga gagal dimuat — kemungkinan koneksi internet terputus. Coba muat ulang halaman. Daftar penyedia di samping tetap tampil karena datanya dari database.</p>
         <ol>
           <li>Buka <a href="https://console.cloud.google.com/google/maps-apis" target="_blank" rel="noopener">Google Cloud Console &rarr; Maps API</a></li>
           <li>Aktifkan <strong>Maps JavaScript API</strong> dan <strong>Directions API</strong></li>
-          <li>Buat API key, lalu tempel ke <code>config.php</code></li>
+          <li>Buat API key, lalu tempel ke <code>config.php</code>, dan aktifkan billing</li>
         </ol>
-        <p class="map-notice-small">Panduan lengkap ada di <code>README.md</code>. Demo kelas tetap bisa jalan: daftar, pencarian, filter, dan detail bekerja tanpa peta.</p>
+        <p class="map-notice-small">Panduan lengkap ada di <code>README.md</code>.</p>
       </div>
     </div>
+
+    <!-- Penanda mode peta cadangan -->
+    <div class="osm-pill" id="pillOsm" hidden><i class="fa-solid fa-map"></i> Peta: OpenStreetMap — Google Maps aktif otomatis setelah billing diaktifkan</div>
 
     <!-- Info rute -->
     <div class="route-bar" id="routeBar" hidden>
@@ -141,9 +145,10 @@ $keyReady = mapsKeyReady();
     apiBase: 'api.php'
   };
 </script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="assets/js/app.js"></script>
 <?php if ($keyReady): ?>
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=<?= urlencode(GOOGLE_MAPS_API_KEY) ?>&libraries=geometry&callback=initMap"></script>
+<script async defer onerror="mapLoadFailed()" src="https://maps.googleapis.com/maps/api/js?key=<?= urlencode(GOOGLE_MAPS_API_KEY) ?>&libraries=geometry&callback=initMap"></script>
 <?php endif; ?>
 </body>
 </html>
