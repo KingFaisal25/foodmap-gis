@@ -303,29 +303,26 @@ code { background: rgba(0, 180, 216, .15); padding: 1px 6px; border-radius: 6px;
 }
 .stat span { font-size: 11px; color: var(--muted); font-weight: 600; }
 
-/* ---------- Globe 3D ---------- */
-.globe-wrap {
-  position: relative; height: 220px; margin: 10px 16px 2px;
-  border: 1px solid var(--line); border-radius: var(--radius);
-  overflow: hidden;
-  background:
-    radial-gradient(ellipse at 50% 120%, rgba(139, 92, 246, .28), transparent 60%),
-    radial-gradient(ellipse at 50% -20%, rgba(0, 180, 216, .25), transparent 60%),
-    #0a1122;
-  box-shadow: inset 0 0 42px rgba(0, 180, 216, .07), 0 8px 24px rgba(0, 0, 0, .3);
+/* ---------- Globe 3D sebagai background daftar ---------- */
+.sidebar { position: relative; }
+.globe-bg {
+  position: absolute; inset: 0; z-index: 0;
+  overflow: hidden; pointer-events: none;
 }
-.globe-wrap canvas { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
-.globe-wrap canvas:active { cursor: grabbing; }
-.globe-caption {
-  position: absolute; left: 0; right: 0; bottom: 0;
-  padding: 7px 10px 8px; font-size: 11px; color: var(--muted);
-  text-align: center; pointer-events: none;
-  background: linear-gradient(transparent, rgba(5, 9, 20, .85));
+.globe-bg canvas {
+  display: block; width: 100%; height: min(100%, 100dvh);
+  opacity: .6;
 }
-.globe-caption i { color: var(--accent); margin-right: 4px; }
-.globe-wrap.no-3d { display: grid; place-items: center; }
-.globe-wrap.no-3d canvas { display: none; }
-.globe-wrap.no-3d .globe-caption { position: static; background: none; font-size: 12.5px; padding: 12px; }
+.sidebar > :not(.globe-bg) { position: relative; z-index: 1; }
+.globe-hint {
+  padding: 2px 16px 0; font-size: 11.5px; color: var(--muted); text-align: center;
+}
+.globe-hint i { color: var(--accent); margin-right: 4px; }
+/* Kartu kaca: globe samar-samar terlihat di sela-selanya */
+.card {
+  background: rgba(15, 23, 42, .82);
+  -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px);
+}
 
 /* ---------- Animasi masuk kartu ---------- */
 @keyframes cardIn {
@@ -356,7 +353,7 @@ code { background: rgba(0, 180, 216, .15); padding: 1px 6px; border-radius: 6px;
 }
 
 @media (max-width: 900px) {
-  .globe-wrap { height: 180px; }
+  .globe-bg canvas { height: min(100%, 100dvh); }
 }
 
 /* ============================================================
