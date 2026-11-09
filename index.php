@@ -19,7 +19,7 @@ $keyReady = mapsKeyReady();
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/style.css?v=<?= filemtime(__DIR__ . '/assets/css/style.css') ?>">
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -168,9 +168,9 @@ $keyReady = mapsKeyReady();
   };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="assets/js/app.js"></script>
-<script defer src="assets/js/globe3d.js"></script>
-<script defer src="assets/js/polish.js"></script>
+<script src="assets/js/app.js?v=<?= filemtime(__DIR__ . '/assets/js/app.js') ?>"></script>
+<script defer src="assets/js/globe3d.js?v=<?= filemtime(__DIR__ . '/assets/js/globe3d.js') ?>"></script>
+<script defer src="assets/js/polish.js?v=<?= filemtime(__DIR__ . '/assets/js/polish.js') ?>"></script>
 <?php if ($keyReady): ?>
 <script async defer onerror="mapLoadFailed()" src="https://maps.googleapis.com/maps/api/js?key=<?= urlencode(GOOGLE_MAPS_API_KEY) ?>&libraries=geometry&callback=initMap"></script>
 <?php endif; ?>
