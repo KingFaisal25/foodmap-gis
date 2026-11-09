@@ -35,6 +35,7 @@ $keyReady = mapsKeyReady();
   <div class="search-box">
     <i class="fa-solid fa-magnifying-glass"></i>
     <input type="search" id="inputCari" placeholder="Cari makanan, warung, kafe..." autocomplete="off">
+    <button class="btn-mic" id="btnSuara" type="button" title="Cari dengan suara"><i class="fa-solid fa-microphone"></i></button>
     <kbd class="search-kbd" title="Tekan / untuk fokus ke pencarian">/</kbd>
     <button id="btnBersihkan" title="Bersihkan pencarian" hidden><i class="fa-solid fa-xmark"></i></button>
   </div>
