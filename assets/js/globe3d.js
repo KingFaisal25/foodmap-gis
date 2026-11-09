@@ -7,6 +7,8 @@
    secara skematis (diperlebar) ke sepetak globe di sekitar
    Indonesia agar titik-titiknya terlihat — ini widget visual,
    bukan peta ukur. Klik titik = klik kartu penyedia di daftar.
+   Gaya visual: bersih & rapi — bola gelap halus, garis lintang/
+   bujur tipis, glow atmosfer, titik bercahaya, partikel redup.
    ============================================================ */
 (function () {
   'use strict';
@@ -32,10 +34,11 @@
   var visible = true, running = false, rafId = null;
   var providers = [];
   var dotMeshes = [];
+  var glowTex = null;
 
   function size() {
     W = wrap.clientWidth || 340;
-    H = wrap.clientHeight || 210;
+    H = wrap.clientHeight || 220;
     if (renderer) {
       renderer.setSize(W, H, false);
       camera.aspect = W / H;
@@ -56,48 +59,83 @@
     );
   }
 
+  /** Tekstur glow radial (putih) — diwarnai lewat warna material sprite. */
+  function makeGlowTexture() {
+    var c = document.createElement('canvas');
+    c.width = c.height = 128;
+    var ctx = c.getContext('2d');
+    var g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.3, 'rgba(255,255,255,0.55)');
+    g.addColorStop(0.65, 'rgba(255,255,255,0.12)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 128, 128);
+    return new THREE.CanvasTexture(c);
+  }
+
+  /** Lingkaran garis tipis (untuk garis lintang & bujur). */
+  function circleLine(radius, color, opacity) {
+    var pts = [];
+    for (var i = 0; i <= 96; i++) {
+      var a = (i / 96) * Math.PI * 2;
+      pts.push(new THREE.Vector3(Math.cos(a) * radius, Math.sin(a) * radius, 0));
+    }
+    var geo = new THREE.BufferGeometry().setFromPoints(pts);
+    return new THREE.LineLoop(geo, new THREE.LineBasicMaterial({
+      color: color, transparent: true, opacity: opacity
+    }));
+  }
+
   function buildScene() {
-    renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false });
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     scene = new THREE.Scene();
     camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-    camera.position.set(0, 0.4, 3.4);
+    camera.position.set(0, 0.35, 3.6);
     camera.lookAt(0, 0, 0);
     raycaster = new THREE.Raycaster();
     pointer = new THREE.Vector2();
+    glowTex = makeGlowTexture();
 
     globeGroup = new THREE.Group();
     scene.add(globeGroup);
 
-    // Bola kawat + bola dalam gelap
-    var wire = new THREE.Mesh(
-      new THREE.SphereGeometry(1, 36, 36),
-      new THREE.MeshBasicMaterial({ color: 0x00b4d8, wireframe: true, transparent: true, opacity: 0.28 })
-    );
-    globeGroup.add(wire);
-    var inner = new THREE.Mesh(
-      new THREE.SphereGeometry(0.985, 36, 36),
-      new THREE.MeshBasicMaterial({ color: 0x0b1a33, transparent: true, opacity: 0.85 })
-    );
-    globeGroup.add(inner);
+    // Glow atmosfer di belakang globe
+    var atmo = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTex, color: 0x00b4d8, transparent: true, opacity: 0.45,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    }));
+    atmo.scale.set(3.6, 3.6, 1);
+    globeGroup.add(atmo);
 
-    // Garis lintang (graticule) — lingkaran tipis
+    // Bola utama: gelap halus (tanpa wireframe padat — itu yang bikin ramai)
+    var globe = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 48, 48),
+      new THREE.MeshBasicMaterial({ color: 0x0d1b33 })
+    );
+    globeGroup.add(globe);
+
+    // Garis bujur: 8 meridian tipis, rapi
+    for (var m = 0; m < 8; m++) {
+      var meridian = circleLine(1.002, 0x00b4d8, 0.16);
+      meridian.rotation.y = (m / 8) * Math.PI;
+      globeGroup.add(meridian);
+    }
+    // Garis lintang: 5 garis tipis, khatulistiwa sedikit lebih terang
     [-0.6, -0.3, 0, 0.3, 0.6].forEach(function (y) {
       var r = Math.sqrt(1 - y * y);
-      var pts = [];
-      for (var i = 0; i <= 64; i++) {
-        var a = (i / 64) * Math.PI * 2;
-        pts.push(new THREE.Vector3(Math.cos(a) * r, y, Math.sin(a) * r));
-      }
-      var geo = new THREE.BufferGeometry().setFromPoints(pts);
-      globeGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0x00b4d8, transparent: true, opacity: 0.18 })));
+      var lat = circleLine(r, 0x00b4d8, y === 0 ? 0.3 : 0.14);
+      lat.rotation.x = Math.PI / 2;
+      lat.position.y = y;
+      globeGroup.add(lat);
     });
 
-    // Partikel mengambang di sekitar globe
-    var pCount = 120, pos = new Float32Array(pCount * 3);
+    // Partikel redup di sekitar globe (lebih sedikit & lebih halus)
+    var pCount = 60, pos = new Float32Array(pCount * 3);
     for (var j = 0; j < pCount; j++) {
       var th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
-      var rr = 1.5 + Math.random() * 0.9;
+      var rr = 1.6 + Math.random() * 0.8;
       pos[j * 3] = rr * Math.sin(ph) * Math.cos(th);
       pos[j * 3 + 1] = rr * Math.cos(ph);
       pos[j * 3 + 2] = rr * Math.sin(ph) * Math.sin(th);
@@ -105,7 +143,7 @@
     var pGeo = new THREE.BufferGeometry();
     pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     globeGroup.add(new THREE.Points(pGeo, new THREE.PointsMaterial({
-      color: 0x90e0ef, size: 0.025, transparent: true, opacity: 0.7
+      color: 0x90e0ef, size: 0.02, transparent: true, opacity: 0.45
     })));
 
     dotsGroup = new THREE.Group();
@@ -125,23 +163,25 @@
     var latMin = Math.min.apply(null, lats), latMax = Math.max.apply(null, lats);
     var lngMin = Math.min.apply(null, lngs), lngMax = Math.max.apply(null, lngs);
     providers.forEach(function (p) {
+      var warna = new THREE.Color(p.warna || '#00b4d8');
       var v = latLngToVec(p.latitude, p.longitude, 1.02, latMin, latMax, lngMin, lngMax);
+      // Titik: bola kecil warna kategori + inti putih mungil
       var dot = new THREE.Mesh(
-        new THREE.SphereGeometry(0.032, 10, 10),
-        new THREE.MeshBasicMaterial({ color: new THREE.Color(p.warna || '#00b4d8') })
+        new THREE.SphereGeometry(0.038, 12, 12),
+        new THREE.MeshBasicMaterial({ color: warna })
       );
       dot.position.copy(v);
       dot.userData.id = p.id_penyedia;
       dotsGroup.add(dot);
       dotMeshes.push(dot);
-      // Cincin halo di sekeliling titik
-      var halo = new THREE.Mesh(
-        new THREE.RingGeometry(0.045, 0.06, 20),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
-      );
-      halo.position.copy(v);
-      halo.lookAt(0, 0, 0);
-      dotsGroup.add(halo);
+      // Glow lembut di sekeliling titik (sprite, bukan cincin — lebih rapi)
+      var glow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: glowTex, color: warna, transparent: true, opacity: 0.7,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      }));
+      glow.scale.set(0.22, 0.22, 1);
+      glow.position.copy(v);
+      dotsGroup.add(glow);
     });
   }
 
