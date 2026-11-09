@@ -788,7 +788,13 @@
     var btn = $('btnSuara');
     if (!btn) return;
     var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) { btn.style.display = 'none'; return; }
+    // Tombol selalu tampil; bila browser tidak mendukung, beri tahu saat diklik.
+    if (!SR) {
+      btn.addEventListener('click', function () {
+        beriTahu('Pencarian suara tidak didukung browser ini — coba di Chrome.');
+      });
+      return;
+    }
     btn.addEventListener('click', function () {
       var rec;
       try { rec = new SR(); } catch (e) { beriTahu('Pencarian suara tidak didukung browser ini.'); return; }
