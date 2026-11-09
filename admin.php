@@ -77,6 +77,10 @@ if ($login && $db && isset($_POST['aksi'])) {
             $st = $db->prepare('DELETE FROM menu_makanan WHERE id_menu = ?');
             $st->execute([(int) ($_POST['id_menu'] ?? 0)]);
             $pesan = 'Menu berhasil dihapus.';
+        } elseif ($aksi === 'hapus_ulasan') {
+            $st = $db->prepare('DELETE FROM ulasan WHERE id_ulasan = ?');
+            $st->execute([(int) ($_POST['id_ulasan'] ?? 0)]);
+            $pesan = 'Ulasan berhasil dihapus.';
         }
     } catch (Throwable $e) {
         $pesan = 'Gagal: ' . $e->getMessage();
@@ -88,12 +92,27 @@ $kategoriList = [];
 $penyediaList = [];
 $edit = null;
 $menuPenyedia = null;
+$dash = ['penyedia' => 0, 'menu' => 0, 'ulasan' => 0, 'rating' => null, 'perKategori' => []];
 if ($db) {
     $kategoriList = $db->query('SELECT * FROM kategori_makanan ORDER BY nama_kategori')->fetchAll();
     $penyediaList = $db->query(
         'SELECT p.*, (SELECT COUNT(*) FROM menu_makanan m WHERE m.id_penyedia = p.id_penyedia) AS jumlah_menu
          FROM penyedia_makanan p ORDER BY p.nama_penyedia'
     )->fetchAll();
+    // Dashboard: ringkasan + grafik per kategori
+    $dash['penyedia'] = count($penyediaList);
+    $dash['menu'] = (int) $db->query('SELECT COUNT(*) FROM menu_makanan')->fetchColumn();
+    $dash['perKategori'] = $db->query(
+        'SELECT k.nama_kategori, k.warna, COUNT(p.id_penyedia) AS jumlah
+         FROM kategori_makanan k LEFT JOIN penyedia_makanan p ON p.id_kategori = k.id_kategori
+         GROUP BY k.id_kategori ORDER BY jumlah DESC'
+    )->fetchAll();
+    try {
+        $dash['ulasan'] = (int) $db->query('SELECT COUNT(*) FROM ulasan')->fetchColumn();
+        $dash['rating'] = $db->query('SELECT ROUND(AVG(rating), 1) FROM ulasan')->fetchColumn();
+    } catch (Throwable $e) {
+        // Tabel ulasan belum dimigrasi — dashboard tetap jalan tanpa angka ulasan.
+    }
     if (isset($_GET['edit'])) {
         $st = $db->prepare('SELECT * FROM penyedia_makanan WHERE id_penyedia = ?');
         $st->execute([(int) $_GET['edit']]);
@@ -108,6 +127,13 @@ if ($db) {
             $st = $db->prepare('SELECT * FROM menu_makanan WHERE id_penyedia = ? ORDER BY harga ASC');
             $st->execute([$idP]);
             $menuPenyedia['menu'] = $st->fetchAll();
+            try {
+                $st = $db->prepare('SELECT * FROM ulasan WHERE id_penyedia = ? ORDER BY created_at DESC, id_ulasan DESC');
+                $st->execute([$idP]);
+                $menuPenyedia['ulasan'] = $st->fetchAll();
+            } catch (Throwable $e) {
+                $menuPenyedia['ulasan'] = [];
+            }
         }
     }
 }
@@ -173,6 +199,18 @@ if ($db) {
 <?php else: ?>
   <?php if ($pesan): ?><p class="alert" style="background:#0e2a1e;border-color:#14532d;color:#86efac"><?= htmlspecialchars($pesan) ?></p><?php endif; ?>
 
+  <!-- Dashboard ringkasan -->
+  <div class="admin-card">
+    <h2><i class="fa-solid fa-chart-simple"></i> Dashboard</h2>
+    <div class="dash-grid">
+      <div class="dash-stat"><b><?= (int) $dash['penyedia'] ?></b><span>Penyedia</span></div>
+      <div class="dash-stat"><b><?= (int) $dash['menu'] ?></b><span>Menu</span></div>
+      <div class="dash-stat"><b><?= count($kategoriList) ?></b><span>Kategori</span></div>
+      <div class="dash-stat"><b><?= $dash['rating'] !== null ? htmlspecialchars(number_format((float) $dash['rating'], 1, ',', '.')) . ' ★' : '–' ?></b><span>Rating rata-rata (<?= (int) $dash['ulasan'] ?> ulasan)</span></div>
+    </div>
+    <div class="dash-chart"><canvas id="chartKategori" height="180"></canvas></div>
+  </div>
+
   <!-- Form tambah / edit penyedia -->
   <div class="admin-card">
     <h2><i class="fa-solid fa-<?= $edit ? 'pen' : 'plus' ?>"></i> <?= $edit ? 'Ubah Penyedia' : 'Tambah Penyedia Baru' ?></h2>
@@ -235,6 +273,31 @@ if ($db) {
       <a class="btn btn-ghost" href="admin.php">Selesai</a></div>
     </form>
   </div>
+
+  <!-- Ulasan penyedia ini -->
+  <div class="admin-card">
+    <h2><i class="fa-solid fa-star"></i> Ulasan — <?= htmlspecialchars($menuPenyedia['nama_penyedia']) ?> (<?= count($menuPenyedia['ulasan'] ?? []) ?>)</h2>
+    <?php if (empty($menuPenyedia['ulasan'])): ?>
+      <p style="color:var(--muted);font-size:14px">Belum ada ulasan untuk penyedia ini.</p>
+    <?php else: ?>
+    <table class="admin-tbl">
+      <tr><th>Nama</th><th>Rating</th><th>Komentar</th><th>Tanggal</th><th></th></tr>
+      <?php foreach ($menuPenyedia['ulasan'] as $u): ?>
+      <tr>
+        <td><strong><?= htmlspecialchars($u['nama']) ?></strong></td>
+        <td><?= str_repeat('★', (int) $u['rating']) . str_repeat('☆', 5 - (int) $u['rating']) ?></td>
+        <td><?= htmlspecialchars($u['komentar']) ?></td>
+        <td><?= htmlspecialchars(substr($u['created_at'], 0, 10)) ?></td>
+        <td><form method="post" onsubmit="return confirm('Hapus ulasan ini?')" style="display:inline">
+          <input type="hidden" name="aksi" value="hapus_ulasan">
+          <input type="hidden" name="id_ulasan" value="<?= (int) $u['id_ulasan'] ?>">
+          <button class="btn btn-danger" type="submit" title="Hapus ulasan"><i class="fa-solid fa-trash"></i></button>
+        </form></td>
+      </tr>
+      <?php endforeach; ?>
+    </table>
+    <?php endif; ?>
+  </div>
   <?php endif; ?>
 
   <!-- Daftar penyedia -->
@@ -267,6 +330,29 @@ if ($db) {
 <?php endif; ?>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  // Grafik dashboard: penyedia per kategori
+  (function () {
+    var el = document.getElementById('chartKategori');
+    if (!el || typeof Chart === 'undefined') return;
+    var labels = <?= json_encode(array_column($dash['perKategori'], 'nama_kategori')) ?>;
+    var values = <?= json_encode(array_map('intval', array_column($dash['perKategori'], 'jumlah'))) ?>;
+    var colors = <?= json_encode(array_column($dash['perKategori'], 'warna')) ?>;
+    new Chart(el, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 8 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+          y: { beginAtZero: true, ticks: { color: '#94a3b8', precision: 0 }, grid: { color: 'rgba(148,163,184,.12)' } }
+        }
+      }
+    });
+  })();
+</script>
 <script>
   // Sinkronkan id_kategori dengan pilihan kategori
   var selKat = document.getElementById('selectKategori');

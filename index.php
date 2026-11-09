@@ -40,6 +40,7 @@ $keyReady = mapsKeyReady();
   </div>
 
   <div class="top-actions">
+    <span class="cuaca-pill" id="cuacaPill" hidden><i class="fa-solid fa-cloud-sun"></i> <span id="cuacaText">Memuat cuaca...</span></span>
     <button id="btnLokasiSaya" class="btn btn-ghost" title="Tampilkan lokasiku di peta">
       <i class="fa-solid fa-location-crosshairs"></i><span>Lokasi Saya</span>
     </button>
@@ -66,6 +67,16 @@ $keyReady = mapsKeyReady();
           <option value="15000">s.d. Rp15.000</option>
           <option value="20000">s.d. Rp20.000</option>
           <option value="30000">s.d. Rp30.000</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <label for="selectRadius"><i class="fa-solid fa-location-dot"></i> Jarak dari saya</label>
+        <select id="selectRadius" disabled title="Aktifkan 'Lokasi Saya' dulu">
+          <option value="">Semua jarak</option>
+          <option value="1">≤ 1 km</option>
+          <option value="3">≤ 3 km</option>
+          <option value="5">≤ 5 km</option>
+          <option value="10">≤ 10 km</option>
         </select>
       </div>
     </div>
@@ -138,14 +149,42 @@ $keyReady = mapsKeyReady();
         </p>
         <h3><i class="fa-solid fa-bowl-food"></i> Menu &amp; Harga</h3>
         <ul class="menu-list" id="detailMenu"></ul>
+        <h3><i class="fa-solid fa-star"></i> Ulasan <span class="ulasan-rata" id="ulasanRata"></span></h3>
+        <div class="ulasan-list" id="ulasanList"><p class="ulasan-kosong">Belum ada ulasan — jadilah yang pertama!</p></div>
+        <form class="ulasan-form" id="formUlasan">
+          <input type="text" id="ulasanNama" maxlength="60" placeholder="Nama kamu" required>
+          <select id="ulasanRating" title="Rating" required>
+            <option value="5">★★★★★ (5)</option>
+            <option value="4">★★★★ (4)</option>
+            <option value="3">★★★ (3)</option>
+            <option value="2">★★ (2)</option>
+            <option value="1">★ (1)</option>
+          </select>
+          <textarea id="ulasanKomentar" maxlength="500" rows="2" placeholder="Ceritakan rasanya..." required></textarea>
+          <button class="btn btn-primary" type="submit" style="width:100%;justify-content:center">Kirim Ulasan</button>
+          <p class="ulasan-status" id="ulasanStatus" hidden></p>
+        </form>
+        <h3><i class="fa-solid fa-street-view"></i> Street View</h3>
+        <button class="btn btn-ghost" id="btnStreet" type="button" style="width:100%;justify-content:center"><i class="fa-solid fa-eye"></i> Lihat Jalan di Depan Tempat Ini</button>
+        <div class="street-view" id="detailStreet" hidden></div>
         <div class="detail-actions">
           <button class="btn btn-primary" id="btnRute"><i class="fa-solid fa-route"></i> Rute ke Sini</button>
+          <button class="btn btn-ghost" id="btnTambahTur" type="button" title="Tambah ke tur kuliner"><i class="fa-solid fa-plus"></i> Tur</button>
           <a class="btn btn-ghost" id="btnGmaps" href="#" target="_blank" rel="noopener"><i class="fa-solid fa-map-location-dot"></i> Google Maps</a>
         </div>
       </div>
     </article>
 
     <button class="map-fab" id="btnLokasiFab" title="Pusatkan ke lokasiku"><i class="fa-solid fa-location-crosshairs"></i></button>
+    <button class="map-fab map-fab-heat" id="btnHeatmap" title="Tampilkan heatmap kepadatan kuliner"><i class="fa-solid fa-fire"></i></button>
+
+    <!-- Bar tur kuliner -->
+    <div class="tur-bar" id="turBar" hidden>
+      <i class="fa-solid fa-route"></i>
+      <span id="turInfo">Tur Kuliner (0)</span>
+      <button class="btn btn-primary" id="btnBuatRute" type="button">Buat Rute</button>
+      <button class="btn btn-ghost" id="btnHapusTur" type="button" title="Kosongkan tur"><i class="fa-solid fa-trash"></i></button>
+    </div>
   </section>
 </main>
 
@@ -172,7 +211,7 @@ $keyReady = mapsKeyReady();
 <script defer src="assets/js/globe3d.js?v=<?= filemtime(__DIR__ . '/assets/js/globe3d.js') ?>"></script>
 <script defer src="assets/js/polish.js?v=<?= filemtime(__DIR__ . '/assets/js/polish.js') ?>"></script>
 <?php if ($keyReady): ?>
-<script async defer onerror="mapLoadFailed()" src="https://maps.googleapis.com/maps/api/js?key=<?= urlencode(GOOGLE_MAPS_API_KEY) ?>&libraries=geometry&callback=initMap"></script>
+<script async defer onerror="mapLoadFailed()" src="https://maps.googleapis.com/maps/api/js?key=<?= urlencode(GOOGLE_MAPS_API_KEY) ?>&libraries=geometry,visualization&callback=initMap"></script>
 <?php endif; ?>
 </body>
 </html>

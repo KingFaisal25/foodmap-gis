@@ -118,10 +118,29 @@ Buka `admin.php` → login dengan password di `config.php` (default `admin123`).
 
 20 penyedia makanan di kota **Bandung** (Batagor Kingsley, Mie Kocok Persib, Warung Nasi Ampera, Sate Anggrek, Kupat Tahu Gempol, dan lainnya) dengan foto dari Unsplash. **Koordinat adalah perkiraan di area jalan yang tercantum** untuk keperluan demo tugas — sesuaikan ke koordinat persis bila dipakai produksi.
 
+## 🚀 Fitur canggih
+
+- **Tur kuliner** — tekan `+ Tur` di kartu / panel detail untuk menambah tempat (maks. 8, tersimpan di browser). Tekan `Buat Rute`: Google Maps mengurutkan pemberhentian paling efisien (`optimizeWaypoints`) dan menampilkan total jarak + waktu; mode OpenStreetMap memakai garis lurus + jarak haversine.
+- **Rating & ulasan** — tiap penyedia bisa diberi bintang 1–5 + komentar (tabel `ulasan`, lihat `database/migrasi_ulasan.sql`). Rata-rata tampil di kartu & panel detail; admin bisa menghapus ulasan di halaman `admin.php?menu=<id>`.
+- **Terdekat dari saya** — filter jarak (≤1/3/5/10 km) dari lokasimu, hasil diurutkan dari yang terdekat. Aktif setelah menekan `Lokasi Saya`.
+- **Heatmap** — tombol api di peta menampilkan peta panas kepadatan kuliner (Google Maps Visualization).
+- **Street View + cuaca** — panel detail bisa membuka Street View jalan di depan tempat; pil cuaca Bandung (Open-Meteo, gratis tanpa key) tampil di topbar (desktop).
+- **Dashboard admin** — ringkasan (penyedia/menu/kategori/rating) + grafik batang penyedia per kategori (Chart.js).
+
 ## 📝 Jawaban analisis GIS (untuk laporan)
 
 1. **Data spasial vs nonspasial** — *Spasial* adalah data posisi: `latitude`, `longitude`, lokasi di peta, rute, dan jarak. *Nonspasial* (atribut) adalah data penjelas: nama, kategori, alamat, menu, harga, jam operasional, telepon, dan foto. Keduanya terhubung lewat `id_penyedia` sebagai kunci.
 2. *(Lengkapi sesuai pertanyaan laporan di soal — poin 2 dst.)*
+
+### Data spasial vs nonspasial — contoh dari aplikasi ini
+
+| | Data spasial (di mana?) | Data nonspasial / atribut (apa? berapa? kapan?) |
+|---|---|---|
+| Contoh | `latitude -6.9145`, `longitude 107.6105` (Batagor Kingsley); marker di peta; garis rute; jarak "1,2 km"; heatmap; titik-titik globe 3D | Nama "Batagor Kingsley"; kategori "Jajanan"; alamat (teks); menu "Batagor Kuah" Rp18.000; jam 09.00–21.00; telepon; foto; rating ★5 |
+| Ciri | Punya koordinat / bentuk di peta; bisa diukur (jarak, luas) & dianalisis (terdekat, sebaran) | Tidak punya posisi; menjelaskan/mengisi titiknya |
+| Tanpa pasangan | Titik tanpa nama = marker bisu, tidak tahu itu tempat apa | Nama + harga tanpa koordinat = tidak bisa dipetakan / dicari rutenya |
+
+Intinya: **titik (spasial) + keterangan (nonspasial), dihubungkan `id_penyedia`** — peta menampilkan titiknya, panel detail menampilkan keterangannya. Fitur "Terdekat dari saya" adalah analisis spasial (hitung jarak dari koordinatmu ke semua titik, saring ≤ radius), sedangkan filter harga & rating adalah analisis atribut.
 
 ## 📄 Lisensi
 
