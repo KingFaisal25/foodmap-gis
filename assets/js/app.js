@@ -15,6 +15,13 @@
   var kategoriList = [];
   var markers = {};
   var map = null;
+  // Mesin peta aktif: 'google' (utama, sesuai tugas) atau 'osm' (cadangan otomatis)
+  var engine = null;
+  var osmMap = null;
+  var osmMarkers = {};
+  var osmUserMarker = null;
+  var osmRouteLine = null;
+  var fallbackTimer = null;
   var directionsService = null;
   var directionsRenderer = null;
   var userMarker = null;
@@ -184,6 +191,9 @@
   ];
 
   window.initMap = function () {
+    if (engine === 'osm') return; // fallback OSM sudah jalan duluan
+    engine = 'google';
+    if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
     map = new google.maps.Map($('peta'), {
       center: DEFAULT_POS, zoom: 13,
       styles: GAYA_GELAP,
@@ -193,14 +203,63 @@
     directionsRenderer = new google.maps.DirectionsRenderer({ map: map, suppressMarkers: false, polylineOptions: { strokeColor: '#00b4d8', strokeWeight: 5 } });
     renderMarker(semuaPenyedia.filter(cocokFilter));
     mintaLokasi(false);
+    // Google menampilkan .gm-err-container bila API gagal (mis. billing belum aktif)
+    setTimeout(function () {
+      if (engine === 'google' && document.querySelector('.gm-err-container')) initFallbackMap();
+    }, 5000);
   };
 
   // Bila Google menolak API key (key salah / belum diaktifkan)
-  window.gm_authFailure = function () {
-    $('mapNotice').hidden = false;
-  };
+  window.gm_authFailure = function () { initFallbackMap(); };
+  // Bila script Google Maps gagal dimuat sama sekali
+  window.mapLoadFailed = function () { initFallbackMap(); };
+
+  /** Fallback: OpenStreetMap + Leaflet (gratis, tanpa key/billing). */
+  function initFallbackMap() {
+    if (engine === 'osm') return;
+    if (typeof L === 'undefined') { $('mapNotice').hidden = false; return; }
+    engine = 'osm';
+    if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
+    $('peta').innerHTML = '';
+    $('mapNotice').hidden = true;
+    $('pillOsm').hidden = false;
+    osmMap = L.map('peta').setView([DEFAULT_POS.lat, DEFAULT_POS.lng], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(osmMap);
+    renderMarkerOsm(semuaPenyedia.filter(cocokFilter));
+    if (userLoc) tandaiLokasiOsm();
+    mintaLokasi(false);
+  }
+
+  function renderMarkerOsm(hasil) {
+    if (!osmMap) return;
+    Object.keys(osmMarkers).forEach(function (id) { osmMap.removeLayer(osmMarkers[id]); });
+    osmMarkers = {};
+    hasil.forEach(function (p) {
+      var ikon = L.divIcon({
+        className: 'osm-marker',
+        html: '<span style="background:' + warnaKategori(p) + '"></span>',
+        iconSize: [30, 30], iconAnchor: [15, 15]
+      });
+      var m = L.marker([p.latitude, p.longitude], { icon: ikon, title: p.nama_penyedia }).addTo(osmMap);
+      m.on('click', function () { pilihPenyedia(p.id_penyedia); });
+      osmMarkers[p.id_penyedia] = m;
+    });
+  }
+
+  function tandaiLokasiOsm() {
+    if (!osmMap || !userLoc) return;
+    if (!osmUserMarker) {
+      osmUserMarker = L.circleMarker([userLoc.lat, userLoc.lng], {
+        radius: 9, color: '#fff', weight: 3, fillColor: '#38bdf8', fillOpacity: 1
+      }).addTo(osmMap);
+    } else osmUserMarker.setLatLng([userLoc.lat, userLoc.lng]);
+  }
 
   function renderMarker(hasil) {
+    if (engine === 'osm') return renderMarkerOsm(hasil);
     if (!map || !window.google) return;
     var tampil = {};
     hasil.forEach(function (p) {
@@ -227,7 +286,8 @@
     var p = null;
     for (var i = 0; i < semuaPenyedia.length; i++) if (semuaPenyedia[i].id_penyedia === id) { p = semuaPenyedia[i]; break; }
     if (!p) return;
-    if (map) map.panTo({ lat: p.latitude, lng: p.longitude });
+    if (engine === 'osm' && osmMap) osmMap.setView([p.latitude, p.longitude], 15);
+    else if (map) map.panTo({ lat: p.latitude, lng: p.longitude });
     ambilJSON(API + '?action=detail&id=' + id).then(function (res) {
       if (res.ok) tampilkanDetail(res.data);
     }).catch(function () { tampilkanDetail(p); });
@@ -264,6 +324,19 @@
     var gmapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=' + p.latitude + ',' + p.longitude;
     if (userLoc) gmapsUrl += '&origin=' + userLoc.lat + ',' + userLoc.lng;
     $('routeGmaps').href = gmapsUrl;
+    // Mode OSM (tanpa Directions API): garis lurus + jarak, navigasi lewat link Google Maps.
+    if (engine === 'osm' && osmMap) {
+      var origin = userLoc || DEFAULT_POS;
+      if (osmRouteLine) osmMap.removeLayer(osmRouteLine);
+      osmRouteLine = L.polyline([[origin.lat, origin.lng], [p.latitude, p.longitude]], {
+        color: '#00b4d8', weight: 4, dashArray: '8, 8'
+      }).addTo(osmMap);
+      osmMap.fitBounds(osmRouteLine.getBounds().pad(0.35));
+      var km = haversineKm(origin, dest);
+      $('routeBar').hidden = false;
+      $('routeInfo').textContent = 'Ke ' + p.nama_penyedia + ': ±' + (km < 1 ? Math.round(km * 1000) + ' m' : km.toFixed(1).replace('.', ',') + ' km') + ' garis lurus dari ' + (userLoc ? 'lokasimu' : 'pusat kota') + ' — navigasi jalan lewat Google Maps.';
+      return;
+    }
     if (!map || !directionsService) {
       // Peta belum aktif (tanpa API key): tetap buka Google Maps.
       window.open(gmapsUrl, '_blank');
@@ -293,7 +366,10 @@
     }
     navigator.geolocation.getCurrentPosition(function (pos) {
       userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-      if (map && window.google) {
+      if (engine === 'osm') {
+        tandaiLokasiOsm();
+        if (osmMap) osmMap.setView([userLoc.lat, userLoc.lng], 14);
+      } else if (map && window.google) {
         if (!userMarker) {
           userMarker = new google.maps.Marker({
             position: userLoc, map: map, title: 'Lokasi kamu',
@@ -336,12 +412,16 @@
   $('routeTutup').addEventListener('click', function () {
     $('routeBar').hidden = true;
     if (directionsRenderer) directionsRenderer.setDirections({ routes: [] });
+    if (osmRouteLine && osmMap) { osmMap.removeLayer(osmRouteLine); osmRouteLine = null; }
   });
 
-  // Jika peta tidak dimuat (tanpa key), sembunyikan tombol rute-peta yang butuh peta
-  // — daftar & detail tetap berfungsi penuh dari database.
+  // Tanpa key Google Maps: langsung pakai OpenStreetMap (gratis, tanpa billing).
+  // Dengan key: coba Google Maps dulu; kalau gagal (mis. billing belum aktif),
+  // otomatis beralih ke OpenStreetMap setelah terdeteksi error / 8 detik tanpa respons.
   if (!CFG.mapsKeyReady) {
-    setTimeout(function () { $('mapNotice').hidden = false; }, 600);
+    initFallbackMap();
+  } else {
+    fallbackTimer = setTimeout(function () { if (!engine) initFallbackMap(); }, 8000);
   }
 
   muatAwal();
