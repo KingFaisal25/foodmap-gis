@@ -19,7 +19,7 @@ define('DB_USER', 'root');
 define('DB_PASS', '');
 
 // ---- Google Maps API Key (WAJIB diisi agar peta tampil) ----
-define('GOOGLE_MAPS_API_KEY', 'ISI_API_KEY_GOOGLE_MAPS_DI_SINI');
+define('GOOGLE_MAPS_API_KEY', 'AIzaSyDvIE6pwOMrFFqkyn6u7Z_SJZ9R3R3UqQ0');
 
 // ---- Admin (halaman admin.php) ----
 define('ADMIN_PASSWORD', 'admin123');
